@@ -1,0 +1,298 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-primary: 'IBM Plex Sans Thai', 'Noto Sans Thai', 'Anuphan', Tahoma, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-code: 'IBM Plex Sans Thai', 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    --color-bg: #f8fafc;
+    --color-surface: #ffffff;
+    --color-surface-muted: #f1f5f9;
+    --color-border: #e2e8f0;
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-primary: #2563eb;
+    --color-primary-hover: #1d4ed8;
+    --color-success: #059669;
+    --color-warning: #d97706;
+    --color-error: #dc2626;
+    --color-info: #0284c7;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dark {
+    --color-bg: #020617;
+    --color-surface: #0f172a;
+    --color-surface-muted: #1e293b;
+    --color-border: #1e293b;
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #94a3b8;
+    --color-primary: #3b82f6;
+    --color-primary-hover: #2563eb;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+    --color-info: #38bdf8;
+    /* Perceptual compensation for light Thai text on dark surfaces (Impeccable /typeset) */
+    letter-spacing: 0.01em;
+  }
+
+  html {
+    font-family: var(--font-primary);
+    line-height: 1.65;
+    letter-spacing: 0.005em;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis: none;
+    accent-color: var(--color-primary);
+    caret-color: var(--color-primary);
+    scrollbar-color: #cbd5e1 transparent;
+    scrollbar-width: thin;
+  }
+
+  html.dark {
+    scrollbar-color: #334155 transparent;
+  }
+
+  body {
+    font-family: var(--font-primary);
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200;
+    line-height: 1.65;
+    overflow-wrap: break-word;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Headings: refined Thai line-height (1.42) & balanced wrapping so upper/lower vowels never clip */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-primary);
+    line-height: 1.42;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+  }
+
+  p,
+  li {
+    line-height: 1.68;
+    text-wrap: pretty;
+  }
+
+  a {
+    text-underline-offset: 0.22em;
+  }
+
+  /* Ensure all form controls, buttons, selects, options, tables, and dialogs use IBM Plex Sans Thai */
+  button,
+  input,
+  select,
+  optgroup,
+  option,
+  textarea,
+  label,
+  legend,
+  fieldset,
+  table,
+  th,
+  td,
+  caption,
+  dialog {
+    font-family: var(--font-primary);
+    line-height: 1.55;
+    letter-spacing: 0.005em;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-code);
+  }
+}
+
+/* Visually hidden utility that becomes visible on keyboard focus (for skip links) */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.25);
+  transform: translateY(-200%);
+  transition: transform 180ms var(--ease-out-expo);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Tabular figures for numbers, dates, times, and receipt codes using IBM Plex Sans Thai */
+.tabular-nums-thai,
+.font-mono {
+  font-family: var(--font-primary);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Keep source code block in Setup View readable with code font + Thai support */
+pre code {
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Skeleton Shimmer Animation with Reduced Motion Support */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.65) 25%,
+    rgba(241, 245, 249, 0.98) 50%,
+    rgba(226, 232, 240, 0.65) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.7s infinite linear;
+}
+
+.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0.65) 25%,
+    rgba(51, 65, 85, 0.95) 50%,
+    rgba(30, 41, 59, 0.65) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.7s infinite linear;
+}
+
+/* Intentional Reduced Motion Path (Impeccable /animate & /audit):
+   Removes spatial movement and shimmer sweep while preserving opacity and color feedback */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer,
+  .dark .skeleton-shimmer {
+    animation: none !important;
+  }
+  .animate-fadeIn {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  html {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* A4 Paper Preview Sheet — Always forced to light paper color-scheme even in Dark Mode */
+.a4-paper-sheet {
+  color-scheme: only light;
+  background-color: #ffffff;
+  color: #0f172a;
+  accent-color: #2563eb;
+  box-shadow:
+    0 20px 25px -5px rgba(15, 23, 42, 0.18),
+    0 8px 10px -6px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.avoid-page-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Print Layout Styling (A4 Paper Attendance Sheet & Service Receipt) */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body,
+  table,
+  th,
+  td,
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  span,
+  div {
+    font-family: 'IBM Plex Sans Thai', 'Noto Sans Thai', Tahoma, sans-serif !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    line-height: 1.55 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* When the PaperDocumentPreviewModal is open, hide main background content during print so only the A4 paper prints */
+  body:has(.a4-paper-sheet) > #root > div > main,
+  body:has(.a4-paper-sheet) > #root > div > header,
+  body:has(.a4-paper-sheet) > #root > div > footer {
+    display: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .a4-paper-sheet,
+  .print-sheet-container {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .avoid-page-break,
+  tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  .print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10pt !important;
+    line-height: 1.5 !important;
+  }
+
+  .print-table th,
+  .print-table td {
+    border: 1px solid #1e293b !important;
+    padding: 6px 8px !important;
+    color: #0f172a !important;
+    background: transparent !important;
+    vertical-align: middle !important;
+  }
+
+  .print-table thead th {
+    background-color: #f1f5f9 !important;
+    font-weight: 700 !important;
+  }
+}

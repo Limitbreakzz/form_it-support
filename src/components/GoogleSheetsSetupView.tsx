@@ -1,0 +1,360 @@
+import React, { useState } from 'react';
+import {
+  CheckCircle2,
+  CloudUpload,
+  Copy,
+  Database,
+  ExternalLink,
+  FileSpreadsheet,
+  KeyRound,
+  RefreshCw,
+  Server,
+  ShieldAlert,
+  BookOpen,
+} from 'lucide-react';
+import {
+  getAdminPasscode,
+  getConfiguredGasUrl,
+  setAdminPasscode,
+  setConfiguredGasUrl,
+  syncPendingRecordsToCloud,
+  testGoogleSheetsConnection,
+} from '../services/googleSheetsService';
+import gasSourceCode from '../../google-apps-script/Code.gs?raw';
+import { Badge, Button, Card } from './ui/DesignSystem';
+
+interface GoogleSheetsSetupViewProps {
+  isConnected: boolean;
+  onConnectionUpdated: () => Promise<void>;
+}
+
+export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
+  isConnected,
+  onConnectionUpdated,
+}) => {
+  const [urlInput, setUrlInput] = useState<string>(() => getConfiguredGasUrl());
+  const [testing, setTesting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<{
+    type: 'success' | 'error' | 'info';
+    text: string;
+  } | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [newPin, setNewPin] = useState<string>(() => getAdminPasscode());
+  const [pinSaved, setPinSaved] = useState(false);
+
+  const handleSaveAndTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTesting(true);
+    setStatusMsg(null);
+    setConfiguredGasUrl(urlInput);
+
+    try {
+      if (!urlInput.trim()) {
+        setStatusMsg({
+          type: 'info',
+          text: 'ล้างค่า URL ของ Google Apps Script แล้ว ขณะนี้ระบบทำงานในโหมดสำรองข้อมูลในเครื่องจนกว่าจะระบุ Web App URL ใหม่',
+        });
+        await onConnectionUpdated();
+        return;
+      }
+
+      const result = await testGoogleSheetsConnection(urlInput.trim());
+      if (result.connected) {
+        setStatusMsg({
+          type: 'success',
+          text: `${result.message} • แผ่นงานที่พร้อมใช้งาน: ${
+            result.sheets?.join(', ') ||
+            'IT Support Requests, Work Time - Group 1, Work Time - Group 2, Work Time - Group 3'
+          }`,
+        });
+        await onConnectionUpdated();
+      } else {
+        setStatusMsg({
+          type: 'error',
+          text: result.message,
+        });
+      }
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleSyncPending = async () => {
+    setSyncing(true);
+    setStatusMsg(null);
+    try {
+      const res = await syncPendingRecordsToCloud();
+      await onConnectionUpdated();
+      setStatusMsg({
+        type: res.failedCount === 0 ? 'success' : 'error',
+        text: `ซิงก์ข้อมูลขึ้น Google Sheets เสร็จสมบูรณ์: สำเร็จ ${res.syncedCount} รายการ (ไม่สำเร็จ ${res.failedCount} รายการ)`,
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleCopyGasCode = async () => {
+    try {
+      await navigator.clipboard.writeText(gasSourceCode);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2500);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleUpdatePin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPin.trim().length >= 4) {
+      setAdminPasscode(newPin.trim());
+      setPinSaved(true);
+      setTimeout(() => setPinSaved(false), 2500);
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-8 animate-fadeIn">
+      {/* ส่วนหัวหน้าตั้งค่า */}
+      <Card className="p-6 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-2 max-w-2xl">
+            <Badge variant="emerald" icon={<FileSpreadsheet className="w-3.5 h-3.5" />}>
+              การเชื่อมต่อฐานข้อมูล Google Sheets & Google Apps Script API
+            </Badge>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+              ตั้งค่าระบบเชื่อมต่อฐานข้อมูล Google Sheets
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              เชื่อมต่อเว็บแอปพลิเคชันเข้ากับ Google Sheets ของคุณอย่างปลอดภัยผ่าน Google Apps
+              Script Web App โดยระบบจะสร้างและจัดการแผ่นงานทั้ง 4 แผ่นงานพร้อมหัวตารางให้อัตโนมัติ
+            </p>
+          </div>
+
+          <Badge
+            variant={isConnected ? 'emerald' : 'amber'}
+            className="px-4 py-2 text-xs sm:text-sm"
+          >
+            <span
+              className={`inline-block h-2.5 w-2.5 rounded-full mr-2 ${
+                isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+              }`}
+            />
+            {isConnected ? 'เชื่อมต่อ Google Sheets แล้ว' : 'รอการระบุ Web App URL'}
+          </Badge>
+        </div>
+      </Card>
+
+      {/* ฟอร์มกำหนดค่า URL และคู่มือการติดตั้ง */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <Card className="lg:col-span-7 p-6 space-y-5">
+          <div className="flex items-center gap-2.5">
+            <Server className="w-5 h-5 text-blue-600 shrink-0" />
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              1. ระบุ URL ของ Google Apps Script Web App
+            </h2>
+          </div>
+
+          <form onSubmit={handleSaveAndTest} className="space-y-4">
+            <div>
+              <label
+                htmlFor="gas-url-input"
+                className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
+              >
+                Web App URL ที่ได้จากการ Deploy (`https://script.google.com/macros/s/.../exec`)
+              </label>
+              <input
+                id="gas-url-input"
+                type="url"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-2.5 text-sm font-mono text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                คุณสามารถวาง URL ที่นี่ได้โดยตรง หรือกำหนดค่าผ่านตัวแปรสภาพแวดล้อม{' '}
+                <code className="font-mono">VITE_GAS_WEB_APP_URL</code> ในไฟล์{' '}
+                <code className="font-mono">.env</code> โดยไม่ต้องเปิดเผยรหัสลับ API Key ในฝั่ง Frontend
+              </p>
+            </div>
+
+            {statusMsg && (
+              <div
+                role="alert"
+                className={`p-3.5 rounded-xl border text-xs font-medium flex items-start gap-2.5 leading-relaxed ${
+                  statusMsg.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-200'
+                    : statusMsg.type === 'error'
+                    ? 'bg-red-50 border-red-300 text-red-900 dark:bg-red-950/60 dark:border-red-800 dark:text-red-200'
+                    : 'bg-blue-50 border-blue-300 text-blue-900 dark:bg-blue-950/60 dark:border-blue-800 dark:text-blue-200'
+                }`}
+              >
+                {statusMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                )}
+                <span>{statusMsg.text}</span>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="submit"
+                variant="primary"
+                isLoading={testing}
+                icon={<RefreshCw className="w-4 h-4" />}
+              >
+                {testing ? 'กำลังทดสอบการเชื่อมต่อ...' : 'บันทึกและทดสอบการเชื่อมต่อ'}
+              </Button>
+
+              {urlInput.trim() && (
+                <Button
+                  type="button"
+                  variant="success"
+                  isLoading={syncing}
+                  icon={<CloudUpload className="w-4 h-4" />}
+                  onClick={handleSyncPending}
+                >
+                  {syncing ? 'กำลังซิงก์ข้อมูล...' : 'ส่งข้อมูลที่ค้างในเครื่องขึ้น Google Sheets'}
+                </Button>
+              )}
+            </div>
+          </form>
+
+          {/* รายละเอียดแผ่นงานทั้ง 4 แผ่นงานที่ระบบสร้างให้อัตโนมัติ */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              โครงสร้างแผ่นงาน Google Sheets ทั้ง 4 แผ่นงาน (สร้างหัวตารางอัตโนมัติ)
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <div className="font-bold font-mono text-blue-600 dark:text-blue-400">
+                  1. IT Support Requests
+                </div>
+                <div className="text-slate-500 dark:text-slate-400 mt-0.5">
+                  จัดเก็บใบคำขอรับบริการ ข้อมูลผู้แจ้ง รายละเอียดอุปกรณ์ และบริการที่เลือก
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <div className="font-bold font-mono text-slate-800 dark:text-slate-200">
+                  2. Work Time - Group 1
+                </div>
+                <div className="text-slate-500 dark:text-slate-400 mt-0.5">
+                  จัดเก็บเวลาปฏิบัติงานกลุ่มที่ 1 พร้อมคอลัมน์ลายมือชื่อดิจิทัล 2 คน
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <div className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  3. Work Time - Group 2
+                </div>
+                <div className="text-slate-500 dark:text-slate-400 mt-0.5">
+                  จัดเก็บเวลาปฏิบัติงานกลุ่มที่ 2 พร้อมคอลัมน์ลายมือชื่อดิจิทัล 3 คน
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <div className="font-bold font-mono text-amber-600 dark:text-amber-400">
+                  4. Work Time - Group 3
+                </div>
+                <div className="text-slate-500 dark:text-slate-400 mt-0.5">
+                  จัดเก็บเวลาปฏิบัติงานกลุ่มที่ 3 พร้อมคอลัมน์ลายมือชื่อดิจิทัล 3 คน
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* คู่มือการติดตั้งและตั้งค่ารหัสผ่านเจ้าหน้าที่ */}
+        <div className="lg:col-span-5 space-y-6">
+          <Card className="p-6 space-y-4">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+              <BookOpen className="w-5 h-5 text-blue-600 shrink-0" />
+              <span>ขั้นตอนการติดตั้ง Google Apps Script</span>
+            </div>
+            <ol className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300 list-decimal pl-4 leading-relaxed">
+              <li>
+                สร้างไฟล์ Google Sheets ใหม่ที่{' '}
+                <a
+                  href="https://sheets.new"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-600 dark:text-blue-400 font-semibold inline-flex items-center gap-0.5 hover:underline"
+                >
+                  sheets.new <ExternalLink className="w-3 h-3" />
+                </a>
+              </li>
+              <li>
+                ในเมนูด้านบนของ Google Sheets ไปที่{' '}
+                <strong>ส่วนขยาย (Extensions) → Apps Script</strong>
+              </li>
+              <li>
+                คัดลอกโค้ดจากกล่องด้านล่าง (หรือจากไฟล์{' '}
+                <code className="font-mono">google-apps-script/Code.gs</code>) ไปวางแทนที่โค้ดเดิมทั้งหมดแล้วกดบันทึก
+              </li>
+              <li>
+                คลิกปุ่ม <strong>ทำให้ใช้งานได้ (Deploy) → การทำให้ใช้งานได้รายการใหม่ (New deployment)</strong>{' '}
+                แล้วเลือกประเภทเป็น <strong>เว็บแอป (Web app)</strong>
+              </li>
+              <li>
+                ตั้งค่า <em>ดำเนินการในฐานะ (Execute as)</em> เป็น <strong>ฉัน (Me)</strong> และตั้งค่า{' '}
+                <em>ผู้ที่มีสิทธิ์เข้าถึง (Who has access)</em> เป็น <strong>ทุกคน (Anyone)</strong>
+              </li>
+              <li>
+                กดยืนยันการ Deploy และคัดลอก <strong>Web App URL</strong> มาวางในช่องทางด้านซ้าย
+              </li>
+            </ol>
+          </Card>
+
+          {/* ตั้งค่ารหัสผ่านเจ้าหน้าที่ */}
+          <Card className="p-6 space-y-3">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+              <KeyRound className="w-5 h-5 text-amber-600 shrink-0" />
+              <span>ตั้งค่ารหัสผ่านเจ้าหน้าที่ (PIN)</span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              ใช้สำหรับยืนยันสิทธิ์ก่อนแก้ไขหรือลบรายการข้อมูลในระบบ (ค่าเริ่มต้น: 1234)
+            </p>
+            <form onSubmit={handleUpdatePin} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value)}
+                minLength={4}
+                aria-label="รหัสผ่านเจ้าหน้าที่ใหม่"
+                className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-mono text-slate-900 dark:text-white"
+              />
+              <Button type="submit" variant="secondary" size="sm">
+                {pinSaved ? 'บันทึกแล้ว ✓' : 'เปลี่ยนรหัส PIN'}
+              </Button>
+            </form>
+          </Card>
+        </div>
+      </div>
+
+      {/* โค้ด Google Apps Script พร้อมปุ่มคัดลอกในคลิกเดียว */}
+      <div className="rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-lg overflow-hidden">
+        <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Database className="w-4 h-4 text-emerald-400" />
+            <span className="font-mono text-xs sm:text-sm font-bold">
+              google-apps-script/Code.gs (โค้ด Backend API สำหรับวางใน Google Sheets)
+            </span>
+          </div>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            icon={<Copy className="w-3.5 h-3.5" />}
+            onClick={handleCopyGasCode}
+          >
+            {copiedCode ? 'คัดลอกโค้ดเรียบร้อยแล้ว!' : 'คัดลอกโค้ด Google Apps Script ทั้งหมด'}
+          </Button>
+        </div>
+        <pre className="p-6 text-xs font-mono overflow-x-auto max-h-96 leading-relaxed text-slate-300">
+          <code>{gasSourceCode}</code>
+        </pre>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-18T01:09:00+07:00",
+  "title": "Design System: ระบบจัดการงานบริการและบันทึกเวลาปฏิบัติงาน IT Support",
+  "extensions": {
+    "colorMeta": {
+      "primary-cobalt": {
+        "role": "primary",
+        "displayName": "Service Cobalt",
+        "canonical": "#2563eb",
+        "tonalRamp": ["#172554", "#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#93c5fd", "#eff6ff"]
+      },
+      "status-emerald": {
+        "role": "secondary",
+        "displayName": "Verification Emerald",
+        "canonical": "#059669",
+        "tonalRamp": ["#022c22", "#064e3b", "#065f46", "#047857", "#059669", "#10b981", "#6ee7b7", "#ecfdf5"]
+      },
+      "canvas-alabaster": {
+        "role": "neutral",
+        "displayName": "Alabaster Canvas",
+        "canonical": "#f8fafc",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#64748b", "#cbd5e1", "#f1f5f9", "#f8fafc"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "หัวข้อหลักประจำหน้า" },
+      "headline": { "displayName": "Headline", "purpose": "ชื่อส่วนหลักของแบบฟอร์มและหัวตารางใบลงเวลา" },
+      "title": { "displayName": "Title", "purpose": "ชื่อกลุ่มปฏิบัติงานและหัวข้อส่วนย่อย" },
+      "body": { "displayName": "Body", "purpose": "เนื้อหาทั่วไป ข้อมูลในตาราง และข้อความในช่องกรอกข้อมูล" },
+      "label": { "displayName": "Label", "purpose": "ป้ายกำกับช่องกรอกข้อมูลและป้ายสถานะ" }
+    },
+    "shadows": [
+      { "name": "resting-surface", "value": "0 1px 2px 0 rgba(15, 23, 42, 0.04)", "purpose": "พื้นผิวแบบฟอร์มปกติ" },
+      { "name": "floating-dialog", "value": "0 20px 25px -5px rgba(15, 23, 42, 0.18)", "purpose": "หน้าต่างยืนยันและใบรับบริการ" }
+    ],
+    "motion": [
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "จังหวะการเปิดหน้าต่างและการเปลี่ยนสถานะ" }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Action Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "ปุ่มคำสั่งหลักสำหรับส่งแบบฟอร์มและบันทึกข้อมูลลง Google Sheets",
+      "html": "<button class=\"ds-btn-primary\">ตรวจสอบและบันทึกใบคำขอรับบริการ</button>",
+      "css": ".ds-btn-primary { font-family: 'IBM Plex Sans Thai', sans-serif; background: #2563eb; color: #ffffff; padding: 10px 20px; min-height: 44px; font-weight: 600; font-size: 0.875rem; line-height: 1.55; border: none; border-radius: 12px; cursor: pointer; transition: background-color 0.15s ease; } .ds-btn-primary:hover { background: #1d4ed8; } .ds-btn-primary:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "ช่องกรอกข้อมูลมาตรฐานพร้อมรองรับสระและวรรณยุกต์ไทย",
+      "html": "<input class=\"ds-input\" placeholder=\"เช่น สมชาย ประเสริฐกุล\" />",
+      "css": ".ds-input { font-family: 'IBM Plex Sans Thai', sans-serif; background: #ffffff; color: #0f172a; padding: 10px 14px; min-height: 44px; font-size: 1rem; line-height: 1.55; border: 1px solid #cbd5e1; border-radius: 12px; width: 100%; } .ds-input:focus-visible { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Precision Service Ledger (สมุดทะเบียนงานบริการเทคนิคที่แม่นยำและชัดเจน)",
+    "overview": "ระบบการออกแบบนี้นำแรงบันดาลใจจากสมุดทะเบียนรับแจ้งซ่อมและใบลงเวลาปฏิบัติงานแบบกระดาษมาตรฐานในห้องปฏิบัติการวิศวกรรม มาหลอมรวมเข้ากับความคมชัดของแดชบอร์ดปฏิบัติการยุคใหม่",
+    "keyCharacteristics": [
+      "ใช้ฟอนต์ IBM Plex Sans Thai เพียงตระกูลเดียวทั้งระบบ",
+      "พื้นผิวแบบเรียบคมชัด (Flat-By-Default) ไม่ซ้อนการ์ดไว้ในการ์ด",
+      "รองรับโหมดสว่างและโหมดมืดตามมาตรฐาน WCAG AA",
+      "พร้อมสำหรับการพิมพ์ลงกระดาษขนาด A4"
+    ],
+    "rules": [
+      { "name": "The Single Primary Action Rule", "body": "ในแต่ละหน้าจอจะมีปุ่มสีน้ำเงินเข้มเพียงปุ่มเดียวสำหรับคำสั่งหลัก", "section": "colors" },
+      { "name": "The Thai Vowel Clearance Rule", "body": "ห้ามใช้ line-height ต่ำกว่า 1.4 กับหัวข้อภาษาไทย", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "พื้นผิวข้อมูลในระดับเดียวกันใช้เส้นแบ่ง 1px แทนการซ้อนการ์ดที่มีเงาซ้ำซ้อน", "section": "elevation" }
+    ],
+    "dos": [
+      "Do ใช้ฟอนต์ IBM Plex Sans Thai กับทุกองค์ประกอบรวมถึงตารางพิมพ์ขนาด A4",
+      "Do ใช้ <fieldset> และ <legend> สำหรับกลุ่มตัวเลือกบริการแบบหลายรายการ",
+      "Do กำหนดขนาดพื้นที่สัมผัสของปุ่มและตัวเลือกไม่ต่ำกว่า 44x44px"
+    ],
+    "donts": [
+      "Don't ซ้อนการ์ดที่มีเส้นขอบและเงาไว้ภายในการ์ดอื่น (No Nested Cards)",
+      "Don't วางข้อความ Eyebrow / Kicker เหนือหัวข้อหลัก",
+      "Don't รวมแบบฟอร์มบันทึกเวลาของกลุ่มที่ 1, 2, และ 3 เข้าด้วยกัน"
+    ]
+  }
+}
+
