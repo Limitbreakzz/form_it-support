@@ -161,6 +161,45 @@
   font-feature-settings: "tnum" 1;
 }
 
+/* ==========================================================================
+   iOS Safari & Mobile WebKit Date/Time Input Normalization
+   Prevents oversized height, center-aligned text, and broken line-height on iPhone
+   ========================================================================== */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  min-height: 44px;
+  height: 44px;
+  max-height: 44px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value {
+  text-align: left !important;
+  min-height: 1.25em !important;
+  line-height: normal !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0;
+  margin-left: 0.25rem;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* Keep source code block in Setup View readable with code font + Thai support */
 pre code {
   font-family: var(--font-code);

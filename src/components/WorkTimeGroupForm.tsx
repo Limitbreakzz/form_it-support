@@ -34,7 +34,7 @@ import {
 import { SignaturePadField } from './SignaturePadField';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PrintDocumentPortal, PaperPreviewPayload } from './PaperDocumentPreviewModal';
-import { Badge, Button, Card, Drawer, IconButton, InputField, TimeField24, toast } from './ui/DesignSystem';
+import { Badge, Button, Card, DateField, Drawer, IconButton, InputField, TimeField24, toast } from './ui/DesignSystem';
 
 interface WorkTimeGroupFormProps {
   groupConfig: GroupConfig;
@@ -555,12 +555,12 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                 className="font-mono font-bold text-blue-600 dark:text-blue-400 tabular-nums-thai"
               />
 
-              <InputField
+              <DateField
                 label="2. วันที่มาปฏิบัติงาน"
-                type="date"
                 requiredMark
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
+                onChange={setDate}
+                onSetCurrentDate={() => setDate(getCurrentDateISO())}
                 error={errors.date}
               />
 

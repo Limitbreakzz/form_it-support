@@ -762,6 +762,104 @@ export const TimeField24: React.FC<TimeField24Props> = ({
   );
 };
 
+export interface DateFieldProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> {
+  label: string;
+  value: string; // "YYYY-MM-DD"
+  onChange: (val: string) => void;
+  requiredMark?: boolean;
+  optionalText?: string;
+  error?: string;
+  helperText?: string;
+  onSetCurrentDate?: () => void;
+}
+
+/**
+ * ช่องวันที่มาตรฐาน (YYYY-MM-DD) — รองรับการแสดงผลบน iOS Safari, Android และ Desktop
+ * พร้อมปุ่มลัด "วันนี้" (Today) และแก้ปัญหาตัวหนังสืออยู่ตรงกลาง/ความสูงล้นบน iPhone
+ */
+export const DateField: React.FC<DateFieldProps> = ({
+  value,
+  onChange,
+  onSetCurrentDate,
+  label,
+  requiredMark,
+  optionalText,
+  error,
+  helperText,
+  className = '',
+  ...rest
+}) => {
+  const reactId = React.useId();
+  const generatedId = rest.id || `datefield-${reactId}`;
+  const descriptionId = `${generatedId}-desc`;
+  const hasDescription = Boolean(error || helperText);
+
+  return (
+    <div className="min-w-0">
+      <div className="flex items-center justify-between min-h-[24px] mb-1.5">
+        <label
+          htmlFor={generatedId}
+          className="font-sans flex items-center gap-1 text-xs sm:text-sm font-semibold leading-normal text-slate-700 dark:text-slate-200"
+        >
+          <span className="truncate" title={label}>{label}</span>
+          {requiredMark && (
+            <span className="text-red-500 font-bold shrink-0" aria-hidden="true">
+              *
+            </span>
+          )}
+          {optionalText && (
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400 shrink-0">
+              ({optionalText})
+            </span>
+          )}
+        </label>
+        {onSetCurrentDate && (
+          <button
+            type="button"
+            onClick={onSetCurrentDate}
+            title="รีเซ็ตเป็นวันที่ปัจจุบัน (Today)"
+            aria-label="ตั้งวันที่เป็นวันที่ปัจจุบัน"
+            className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/40 rounded px-1 shrink-0"
+          >
+            <Calendar className="w-3 h-3" aria-hidden="true" />
+            <span>วันนี้</span>
+          </button>
+        )}
+      </div>
+
+      <div className="relative">
+        <input
+          {...rest}
+          id={generatedId}
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={requiredMark}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={hasDescription ? descriptionId : undefined}
+          className={`font-sans w-full h-[44px] min-h-[44px] max-h-[44px] rounded-xl border px-3.5 py-2 text-base sm:text-sm leading-normal text-left transition-colors bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 ${
+            error
+              ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+              : 'border-slate-300 dark:border-slate-700 focus:border-blue-600 dark:focus:border-blue-500 focus:ring-blue-500/20'
+          } ${className}`}
+        />
+      </div>
+
+      {error && (
+        <p
+          id={descriptionId}
+          role="alert"
+          className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400"
+        >
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+          <span>{error}</span>
+        </p>
+      )}
+    </div>
+  );
+};
+
 interface TextareaFieldProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   requiredMark?: boolean;

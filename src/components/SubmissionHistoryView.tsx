@@ -319,7 +319,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
               aria-label="กรองตามวันที่"
-              className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none"
+              className="w-full h-[44px] min-h-[44px] max-h-[44px] pl-10 pr-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-left text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none"
             />
           </div>
 

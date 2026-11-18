@@ -37,6 +37,7 @@ import {
   Badge,
   Button,
   Card,
+  DateField,
   FormSection,
   InputField,
   SelectField,
@@ -489,12 +490,12 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   className="font-mono font-bold text-blue-700 dark:text-blue-400 tabular-nums-thai"
                 />
 
-                <InputField
+                <DateField
                   label="วันที่นำเครื่องมาซ่อม"
-                  type="date"
                   requiredMark
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={setDate}
+                  onSetCurrentDate={() => setDate(getCurrentDateISO())}
                   error={errors.date}
                 />
 
