@@ -516,16 +516,16 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       {/* แบบฟอร์มบันทึกเวลาปฏิบัติงานรายวัน (ซ่อนขณะพิมพ์เพื่อให้พิมพ์เฉพาะตาราง A4) */}
       <form onSubmit={handleFormSubmit} noValidate className="no-print">
         <Card className="overflow-hidden">
-          <div className="px-6 sm:px-8 py-6 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
+          <div className="px-4 sm:px-8 py-4 sm:py-6 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-start gap-3 sm:gap-3.5">
               <div
-                className="p-3 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white shrink-0 mt-0.5"
+                className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-slate-900 dark:bg-slate-800 text-white shrink-0 mt-0.5"
                 aria-hidden="true"
               >
-                <Clock className="w-6 h-6" />
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight">
                   {groupConfig.title}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -534,7 +534,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-left sm:text-right shrink-0">
+            {/* ซ่อนบนมือถือเพื่อตัดความซ้ำซ้อน เนื่องจากในฟอร์มด้านล่างมีช่อง "1. ลำดับที่ (รันอัตโนมัติ)" ชัดเจนแล้ว */}
+            <div className="hidden sm:block bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-left sm:text-right shrink-0">
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 ลำดับที่ (Sequence No.)
               </div>
@@ -544,7 +545,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
             </div>
           </div>
 
-          <div className="p-6 sm:p-8 space-y-6">
+          <div className="p-4 sm:p-8 space-y-5 sm:space-y-6">
             {/* 1. ลำดับที่, 2. วันที่, 3. เวลาเริ่มงาน, 4. เวลาเลิกงาน */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <InputField

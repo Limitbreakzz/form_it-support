@@ -224,7 +224,7 @@ export function App() {
       {/* แถบส่วนหัวด้านบนแบบมินิมอล พร้อมปุ่ม Hamburger Menu (ซ่อนขณะพิมพ์) */}
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between min-h-[4.25rem] py-2 gap-3 sm:gap-4">
+          <div className="flex items-center justify-between min-h-[3.75rem] sm:min-h-[4.25rem] py-1.5 sm:py-2 gap-3 sm:gap-4">
             {/* โลโก้ ชื่อระบบ และป้ายระบุหน้าปัจจุบัน */}
             <div className="flex items-center gap-3 min-w-0">
               <button
@@ -516,7 +516,7 @@ export function App() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 focus:outline-none"
+        className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 focus:outline-none"
       >
         {activeTab === 'dashboard' && (
           <DashboardHome
