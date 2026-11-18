@@ -34,6 +34,47 @@ export interface ApiActionResult<T = unknown> {
 }
 
 /**
+ * สร้าง Base URL สำหรับเชื่อมต่อกับ LAN Backend Server (Port 4100) แบบไดนามิก
+ * รองรับทั้งการเข้าผ่าน localhost และเข้าผ่าน IP ของเครื่องในวง LAN เดียวกัน
+ */
+export function getLanBackendBaseUrl(): string {
+  const customEnv = import.meta.env.VITE_BACKEND_API_URL;
+  if (customEnv && typeof customEnv === 'string' && customEnv.trim()) {
+    return customEnv.trim().replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    const hostname = window.location.hostname || 'localhost';
+    return `${protocol}//${hostname}:4100`;
+  }
+  return 'http://localhost:4100';
+}
+
+async function fetchLanBackend<T = unknown>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const baseUrl = getLanBackendBaseUrl();
+    const response = await fetch(`${baseUrl}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options?.headers || {}),
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * ดึงค่า URL ของ Google Apps Script Web App ที่ตั้งค่าไว้
  */
 export function getConfiguredGasUrl(): string {
@@ -55,6 +96,11 @@ export function setConfiguredGasUrl(url: string): void {
   } else {
     localStorage.setItem(GAS_URL_STORAGE_KEY, clean);
   }
+  // ซิงก์การตั้งค่าไปยัง LAN Backend เพื่อให้ทุกอุปกรณ์ในวง LAN ใช้ URL เดียวกันอัตโนมัติ
+  void fetchLanBackend('/api/config', {
+    method: 'POST',
+    body: JSON.stringify({ gasUrl: clean }),
+  });
 }
 
 export function getAdminPasscode(): string {
@@ -63,7 +109,12 @@ export function getAdminPasscode(): string {
 
 export function setAdminPasscode(pin: string): void {
   if (pin.trim().length >= 4) {
-    localStorage.setItem(ADMIN_PIN_STORAGE_KEY, pin.trim());
+    const cleanPin = pin.trim();
+    localStorage.setItem(ADMIN_PIN_STORAGE_KEY, cleanPin);
+    void fetchLanBackend('/api/config', {
+      method: 'POST',
+      body: JSON.stringify({ adminPin: cleanPin }),
+    });
   }
 }
 
@@ -149,22 +200,69 @@ export async function testGoogleSheetsConnection(customUrl?: string): Promise<{
 }
 
 /**
- * ดึงข้อมูลทั้ง 4 แผ่นงานจาก Google Sheets พร้อมผสานข้อมูลที่รอซิงก์ในเครื่อง
+ * ดึงข้อมูลทั้ง 4 แผ่นงานจาก Google Sheets และ LAN Backend พร้อมผสานข้อมูลในเครื่อง
  */
 export async function fetchAllWorksheets(): Promise<{
   data: AllSheetsData;
   fromCloud: boolean;
   error?: string;
 }> {
-  const url = getConfiguredGasUrl();
-  const localData: AllSheetsData = {
+  // 1. ดึงข้อมูลและการตั้งค่าที่แชร์ร่วมกันจาก LAN Backend Server (Port 4100)
+  const lanResponse = await fetchLanBackend<{
+    success: boolean;
+    data?: AllSheetsData;
+    config?: { gasUrl?: string; adminPin?: string };
+  }>('/api/sheets');
+
+  if (lanResponse?.success && lanResponse.config) {
+    if (lanResponse.config.gasUrl && !localStorage.getItem(GAS_URL_STORAGE_KEY)) {
+      localStorage.setItem(GAS_URL_STORAGE_KEY, lanResponse.config.gasUrl);
+    }
+    if (lanResponse.config.adminPin) {
+      localStorage.setItem(ADMIN_PIN_STORAGE_KEY, lanResponse.config.adminPin);
+    }
+  }
+
+  const mergeRows = <T extends { RecordID: string }>(primary: T[], secondary: T[]): T[] => {
+    const map = new Map<string, T>();
+    for (const item of secondary) {
+      if (item && item.RecordID) map.set(item.RecordID, item);
+    }
+    for (const item of primary) {
+      if (item && item.RecordID) map.set(item.RecordID, item);
+    }
+    return Array.from(map.values());
+  };
+
+  const browserData: AllSheetsData = {
     REQUESTS: getLocalSheetRecords<ServiceRequestRecord>('REQUESTS'),
     GROUP_1: getLocalSheetRecords<WorkTimeGroup1Record>('GROUP_1'),
     GROUP_2: getLocalSheetRecords<WorkTimeGroup2Or3Record>('GROUP_2'),
     GROUP_3: getLocalSheetRecords<WorkTimeGroup2Or3Record>('GROUP_3'),
   };
 
+  const localData: AllSheetsData = lanResponse?.data
+    ? {
+        REQUESTS: mergeRows(lanResponse.data.REQUESTS || [], browserData.REQUESTS),
+        GROUP_1: mergeRows(lanResponse.data.GROUP_1 || [], browserData.GROUP_1),
+        GROUP_2: mergeRows(lanResponse.data.GROUP_2 || [], browserData.GROUP_2),
+        GROUP_3: mergeRows(lanResponse.data.GROUP_3 || [], browserData.GROUP_3),
+      }
+    : browserData;
+
+  saveLocalSheetRecords('REQUESTS', localData.REQUESTS);
+  saveLocalSheetRecords('GROUP_1', localData.GROUP_1);
+  saveLocalSheetRecords('GROUP_2', localData.GROUP_2);
+  saveLocalSheetRecords('GROUP_3', localData.GROUP_3);
+
+  const url = getConfiguredGasUrl();
   if (!url) {
+    if (lanResponse?.success) {
+      void fetchLanBackend('/api/sheets', {
+        method: 'PUT',
+        body: JSON.stringify({ data: localData }),
+      });
+    }
     return { data: localData, fromCloud: false };
   }
 
@@ -210,6 +308,11 @@ export async function fetchAllWorksheets(): Promise<{
     saveLocalSheetRecords('GROUP_2', updatedData.GROUP_2);
     saveLocalSheetRecords('GROUP_3', updatedData.GROUP_3);
 
+    void fetchLanBackend('/api/sheets', {
+      method: 'PUT',
+      body: JSON.stringify({ data: updatedData }),
+    });
+
     return { data: updatedData, fromCloud: true };
   } catch (err) {
     return {
@@ -221,7 +324,7 @@ export async function fetchAllWorksheets(): Promise<{
 }
 
 /**
- * สร้างและบันทึกรายการใหม่ไปยังแผ่นงาน Google Sheets ที่กำหนด
+ * สร้างและบันทึกรายการใหม่ไปยังแผ่นงาน Google Sheets และ LAN Backend
  */
 export async function createSheetRecord<
   T extends ServiceRequestRecord | AnyWorkTimeRecord
@@ -236,7 +339,7 @@ export async function createSheetRecord<
       success: false,
       syncedToCloud: false,
       sheetName,
-      error: 'ระบบป้องกันการส่งซ้ำ: ข้อมูลรายการนี้ถูกบันทึกเรียบร้อยแล้ว',
+      error: 'ข้อมูลรายการนี้ถูกบันทึกไว้เรียบร้อยแล้ว ไม่จำเป็นต้องกดส่งซ้ำ',
     };
   }
 
@@ -250,7 +353,7 @@ export async function createSheetRecord<
         success: false,
         syncedToCloud: false,
         sheetName,
-        error: `เลขที่ใบรับบริการ ${reqInput.ReceiptNumber} มีอยู่ในระบบแล้ว กรุณาสุ่มเลขที่ใบรับบริการใหม่`,
+        error: `เลขที่ใบรับบริการ ${reqInput.ReceiptNumber} มีอยู่ในระบบแล้ว กรุณากดปุ่ม "เปลี่ยนเลขใบรับบริการใหม่" ด้านบนแล้วลองบันทึกอีกครั้ง`,
       };
     }
   }
@@ -271,6 +374,14 @@ export async function createSheetRecord<
   if (!url) {
     const localRecord = { ...finalizedRecord, SyncStatus: 'pending_sync' as const };
     saveLocalSheetRecords(sheetKey, [...existing, localRecord]);
+    await fetchLanBackend('/api/sheets/action', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'create',
+        sheetKey,
+        record: localRecord,
+      }),
+    });
     return {
       success: true,
       syncedToCloud: false,
@@ -307,6 +418,14 @@ export async function createSheetRecord<
       SyncStatus: 'synced' as const,
     };
     saveLocalSheetRecords(sheetKey, [...existing, syncedRecord]);
+    await fetchLanBackend('/api/sheets/action', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'create',
+        sheetKey,
+        record: syncedRecord,
+      }),
+    });
 
     return {
       success: true,
@@ -317,6 +436,14 @@ export async function createSheetRecord<
   } catch (err) {
     const fallbackRecord: T = { ...finalizedRecord, SyncStatus: 'pending_sync' as const };
     saveLocalSheetRecords(sheetKey, [...existing, fallbackRecord]);
+    await fetchLanBackend('/api/sheets/action', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'create',
+        sheetKey,
+        record: fallbackRecord,
+      }),
+    });
 
     return {
       success: true,
@@ -332,7 +459,7 @@ export async function createSheetRecord<
 }
 
 /**
- * อัปเดตข้อมูลรายการที่มีอยู่แล้วในแผ่นงาน Google Sheets
+ * อัปเดตข้อมูลรายการที่มีอยู่แล้วในแผ่นงาน Google Sheets และ LAN Backend
  */
 export async function updateSheetRecord<
   T extends ServiceRequestRecord | AnyWorkTimeRecord
@@ -361,6 +488,14 @@ export async function updateSheetRecord<
     const nextList = [...existing];
     nextList[index] = localUpdated;
     saveLocalSheetRecords(sheetKey, nextList);
+    await fetchLanBackend('/api/sheets/action', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'update',
+        sheetKey,
+        record: localUpdated,
+      }),
+    });
     return {
       success: true,
       syncedToCloud: false,
@@ -399,6 +534,14 @@ export async function updateSheetRecord<
     const nextList = [...existing];
     nextList[index] = syncedRecord;
     saveLocalSheetRecords(sheetKey, nextList);
+    await fetchLanBackend('/api/sheets/action', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'update',
+        sheetKey,
+        record: syncedRecord,
+      }),
+    });
 
     return {
       success: true,
@@ -411,6 +554,14 @@ export async function updateSheetRecord<
     const nextList = [...existing];
     nextList[index] = fallbackRecord;
     saveLocalSheetRecords(sheetKey, nextList);
+    await fetchLanBackend('/api/sheets/action', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'update',
+        sheetKey,
+        record: fallbackRecord,
+      }),
+    });
 
     return {
       success: true,
@@ -445,6 +596,14 @@ export async function deleteSheetRecord(
         }));
 
   saveLocalSheetRecords(sheetKey, resequenced);
+  await fetchLanBackend('/api/sheets/action', {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'delete',
+      sheetKey,
+      recordId,
+    }),
+  });
 
   const url = getConfiguredGasUrl();
   if (!url) {
@@ -551,6 +710,17 @@ export async function syncPendingRecordsToCloud(): Promise<{
 
     saveLocalSheetRecords(key, updatedList);
   }
+
+  const allUpdated: AllSheetsData = {
+    REQUESTS: getLocalSheetRecords<ServiceRequestRecord>('REQUESTS'),
+    GROUP_1: getLocalSheetRecords<WorkTimeGroup1Record>('GROUP_1'),
+    GROUP_2: getLocalSheetRecords<WorkTimeGroup2Or3Record>('GROUP_2'),
+    GROUP_3: getLocalSheetRecords<WorkTimeGroup2Or3Record>('GROUP_3'),
+  };
+  await fetchLanBackend('/api/sheets', {
+    method: 'PUT',
+    body: JSON.stringify({ data: allUpdated }),
+  });
 
   return { syncedCount, failedCount };
 }

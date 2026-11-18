@@ -5,9 +5,9 @@
  *
  * Worksheets automatically managed by this script:
  *   1. "IT Support Requests"
- *   2. "Work Time - Group 1"
- *   3. "Work Time - Group 2"
- *   4. "Work Time - Group 3"
+ *   2. "Work Time - Monday Technician"
+ *   3. "Work Time - Tuesday Technician"
+ *   4. "Work Time - Friday Technician"
  *
  * Deployment Instructions:
  *   1. Open your Google Sheet -> Extensions -> Apps Script.
@@ -40,13 +40,15 @@ var SHEET_CONFIG = {
       'AdditionalDetails',
       'RequestedServices',
       'OtherServiceText',
+      'OtherDeviceText',
+      'ReceiverName',
       'Status',
       'CreatedAt',
       'UpdatedAt'
     ]
   },
   GROUP_1: {
-    name: 'Work Time - Group 1',
+    name: 'Work Time - Monday Technician',
     headers: [
       'RecordID',
       'SequenceNo',
@@ -63,7 +65,7 @@ var SHEET_CONFIG = {
     ]
   },
   GROUP_2: {
-    name: 'Work Time - Group 2',
+    name: 'Work Time - Tuesday Technician',
     headers: [
       'RecordID',
       'SequenceNo',
@@ -82,7 +84,7 @@ var SHEET_CONFIG = {
     ]
   },
   GROUP_3: {
-    name: 'Work Time - Group 3',
+    name: 'Work Time - Friday Technician',
     headers: [
       'RecordID',
       'SequenceNo',

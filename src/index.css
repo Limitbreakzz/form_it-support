@@ -5,20 +5,35 @@
 @layer base {
   :root {
     --font-primary: 'IBM Plex Sans Thai', 'Noto Sans Thai', 'Anuphan', Tahoma, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-code: 'IBM Plex Sans Thai', 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    --font-code: 'IBM Plex Mono', 'JetBrains Mono', 'IBM Plex Sans Thai', ui-monospace, SFMono-Regular, monospace;
     --color-bg: #f8fafc;
     --color-surface: #ffffff;
     --color-surface-muted: #f1f5f9;
     --color-border: #e2e8f0;
+    --color-border-strong: #cbd5e1;
     --color-text-primary: #0f172a;
     --color-text-secondary: #475569;
+    --color-text-muted: #64748b;
     --color-primary: #2563eb;
     --color-primary-hover: #1d4ed8;
     --color-success: #059669;
     --color-warning: #d97706;
     --color-error: #dc2626;
     --color-info: #0284c7;
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --shadow-resting: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+    --shadow-elevated: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+    --shadow-floating: 0 20px 25px -5px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.12);
+    /* Emil Kowalski Animation Engineering Tokens */
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --duration-press: 150ms;
+    --duration-surface: 200ms;
+    --duration-modal: 250ms;
   }
 
   .dark {
@@ -26,8 +41,10 @@
     --color-surface: #0f172a;
     --color-surface-muted: #1e293b;
     --color-border: #1e293b;
+    --color-border-strong: #334155;
     --color-text-primary: #f8fafc;
     --color-text-secondary: #94a3b8;
+    --color-text-muted: #64748b;
     --color-primary: #3b82f6;
     --color-primary-hover: #2563eb;
     --color-success: #10b981;
@@ -196,10 +213,15 @@ pre code {
   background-color: #ffffff;
   color: #0f172a;
   accent-color: #2563eb;
+  width: 210mm;
+  min-height: 297mm;
+  box-sizing: border-box;
   box-shadow:
-    0 20px 25px -5px rgba(15, 23, 42, 0.18),
-    0 8px 10px -6px rgba(15, 23, 42, 0.12),
+    0 20px 25px -5px rgba(15, 23, 42, 0.22),
+    0 8px 10px -6px rgba(15, 23, 42, 0.14),
     0 0 0 1px rgba(15, 23, 42, 0.08);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .avoid-page-break {
@@ -207,11 +229,75 @@ pre code {
   page-break-inside: avoid;
 }
 
+/* Print-only utility: completely hidden on screen, visible only during print */
+.print-only {
+  display: none !important;
+}
+
+/* Micro-interaction & Feedback Animations (Emil Kowalski Design Engineering) */
+@keyframes toastSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-toastSlideIn {
+  animation: toastSlideIn 240ms var(--ease-out-expo) forwards;
+}
+
+@keyframes scaleCheck {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scaleCheck {
+  animation: scaleCheck 220ms var(--ease-out-expo) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-toastSlideIn,
+  .animate-scaleCheck {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
 /* Print Layout Styling (A4 Paper Attendance Sheet & Service Receipt) */
 @media print {
   @page {
-    size: A4;
-    margin: 12mm;
+    size: A4 portrait;
+    margin: 0mm;
+  }
+
+  html,
+  body,
+  #root,
+  main {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    color-scheme: only light !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   html,
@@ -229,18 +315,19 @@ pre code {
     font-family: 'IBM Plex Sans Thai', 'Noto Sans Thai', Tahoma, sans-serif !important;
   }
 
-  body {
+  /* Force all dark-mode surfaces inside root to white during print */
+  .dark,
+  .dark body,
+  .dark #root,
+  .dark #root > div,
+  .dark main {
     background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #0f172a !important;
-    line-height: 1.55 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
   }
 
   /* When the PaperDocumentPreviewModal is open, hide main background content during print so only the A4 paper prints */
-  body:has(.a4-paper-sheet) > #root > div > main,
-  body:has(.a4-paper-sheet) > #root > div > header,
-  body:has(.a4-paper-sheet) > #root > div > footer {
+  body:has(.a4-paper-sheet) > #root {
     display: none !important;
   }
 
@@ -256,13 +343,18 @@ pre code {
   .print-sheet-container {
     box-shadow: none !important;
     border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: 0 !important;
+    border-radius: 0 !important;
+    padding: 12mm !important;
+    margin: 0 auto !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-width: 0 !important;
+    min-height: 297mm !important;
+    box-sizing: border-box !important;
     background: #ffffff !important;
+    background-color: #ffffff !important;
     color: #0f172a !important;
+    transform: none !important;
   }
 
   .avoid-page-break,
@@ -278,21 +370,27 @@ pre code {
   .print-table {
     width: 100% !important;
     border-collapse: collapse !important;
-    font-size: 10pt !important;
-    line-height: 1.5 !important;
+    font-size: 9.5pt !important;
+    line-height: 1.45 !important;
   }
 
   .print-table th,
   .print-table td {
-    border: 1px solid #1e293b !important;
-    padding: 6px 8px !important;
-    color: #0f172a !important;
-    background: transparent !important;
+    border: 1px solid #000000 !important;
+    padding: 4px 6px !important;
+    color: #000000 !important;
     vertical-align: middle !important;
   }
 
+  .print-table tbody td {
+    background: #ffffff !important;
+  }
+
   .print-table thead th {
-    background-color: #f1f5f9 !important;
+    background-color: #525252 !important;
+    color: #ffffff !important;
     font-weight: 700 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }

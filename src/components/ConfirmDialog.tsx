@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, HelpCircle, X } from 'lucide-react';
-import { Button } from './ui/DesignSystem';
+import { Button, IconButton } from './ui/DesignSystem';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -27,27 +28,47 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isLoading) {
+        onCancel();
+      }
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, isLoading, onCancel]);
+
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn no-print"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm no-print"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-desc"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isLoading) {
+          onCancel();
+        }
+      }}
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-6">
-        <button
-          type="button"
+      <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_20px_25px_-5px_rgba(15,23,42,0.18)] p-6">
+        <IconButton
+          label="ปิดหน้าต่างยืนยัน"
           onClick={onCancel}
           disabled={isLoading}
-          aria-label="ปิดหน้าต่างยืนยัน"
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-        >
-          <X className="w-4 h-4" />
-        </button>
+          icon={<X className="w-4 h-4" />}
+          className="absolute top-3.5 right-3.5"
+        />
 
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-4 pr-8">
           <div
             className={`p-3 rounded-xl shrink-0 ${
               variant === 'danger'
@@ -56,6 +77,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50'
                 : 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50'
             }`}
+            aria-hidden="true"
           >
             {variant === 'danger' ? (
               <AlertTriangle className="w-6 h-6" />
@@ -66,11 +88,17 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             )}
           </div>
 
-          <div className="flex-1 pr-4">
-            <h3 id="confirm-dialog-title" className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="flex-1 min-w-0">
+            <h2
+              id="confirm-dialog-title"
+              className="text-lg font-bold text-slate-900 dark:text-white"
+            >
               {title}
-            </h3>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            </h2>
+            <p
+              id="confirm-dialog-desc"
+              className="mt-1 text-sm text-slate-600 dark:text-slate-400 leading-relaxed"
+            >
               {description}
             </p>
           </div>
@@ -91,8 +119,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
         )}
 
-        <div className="mt-6 flex items-center justify-end gap-3">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
             {cancelLabel}
           </Button>
           <Button
@@ -100,11 +134,13 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             variant={variant}
             onClick={onConfirm}
             isLoading={isLoading}
+            className="w-full sm:w-auto"
           >
-            {isLoading ? 'กำลังบันทึกข้อมูล...' : confirmLabel}
+            {isLoading ? 'กำลังดำเนินการ...' : confirmLabel}
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

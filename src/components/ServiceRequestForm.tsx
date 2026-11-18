@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
+  Check,
   CheckCircle2,
   ClipboardList,
   Cpu,
+  Eye,
   FileSpreadsheet,
+  FileText,
   Printer,
   RefreshCw,
   Save,
@@ -13,12 +16,14 @@ import {
   Wrench,
 } from 'lucide-react';
 import {
+  ACKNOWLEDGMENT_ITEMS,
+  calculateEstimatedServiceCost,
   DEVICE_TYPE_LABELS_TH,
   DeviceType,
-  getServiceThaiLabel,
-  REQUESTED_SERVICES_LIST,
-  RequestedServiceItem,
+  getAllTechnicians,
+  SERVICE_CATALOG,
   ServiceRequestRecord,
+  STATUS_LABELS_TH,
 } from '../types';
 import {
   generateRecordId,
@@ -27,14 +32,17 @@ import {
   getCurrentTime24,
   parseServicesList,
 } from '../utils/formatters';
-import { PaperDocumentPreviewModal } from './PaperDocumentPreviewModal';
+import { PrintDocumentPortal } from './PaperDocumentPreviewModal';
 import {
   Badge,
   Button,
   Card,
-  CheckboxCard,
   FormSection,
   InputField,
+  SelectField,
+  TextareaField,
+  TimeField24,
+  toast,
 } from './ui/DesignSystem';
 
 interface ServiceRequestFormProps {
@@ -48,12 +56,16 @@ interface ServiceRequestFormProps {
   onBackToDashboard: () => void;
 }
 
-const DEVICE_TYPES: DeviceType[] = [
-  'Computer',
-  'Laptop',
-  'Printer',
-  'Network Device',
-  'Other',
+const PRIMARY_DEVICE_TYPES: { key: DeviceType; label: string }[] = [
+  { key: 'Hardware', label: 'ตัวเครื่อง / อุปกรณ์ (ฮาร์ดแวร์)' },
+  { key: 'Software', label: 'โปรแกรม / ระบบ (ซอฟต์แวร์)' },
+  { key: 'Other', label: 'อุปกรณ์อื่น ๆ (ระบุเอง)' },
+];
+
+const STATUS_OPTIONS: ('Completed' | 'In Progress' | 'Pending')[] = [
+  'Completed',
+  'In Progress',
+  'Pending',
 ];
 
 export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
@@ -65,40 +77,50 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
 }) => {
   const existingReceiptNumbers = existingRecords.map((r) => r.ReceiptNumber);
 
-  // ส่วนที่ 1: ข้อมูลใบรับบริการ
+  // ข้อมูลเลขที่ใบรับบริการและวันเวลา
   const [receiptNumber, setReceiptNumber] = useState<string>(() =>
     generateUniqueReceiptNumber(existingReceiptNumbers)
   );
   const [date, setDate] = useState<string>(() => getCurrentDateISO());
   const [time, setTime] = useState<string>(() => getCurrentTime24());
+  const [status, setStatus] = useState<'Completed' | 'In Progress' | 'Pending'>('Completed');
 
-  // ส่วนที่ 2: ข้อมูลผู้ขอรับบริการ
+  // 1. ข้อมูลผู้ขอรับบริการและเจ้าหน้าที่ผู้รับเรื่อง
+  const technicianOptions = React.useMemo(() => getAllTechnicians(), []);
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [department, setDepartment] = useState('');
+  const [receiverName, setReceiverName] = useState('');
 
-  // ส่วนที่ 3: ข้อมูลอุปกรณ์และรายละเอียดอาการเสีย
-  const [deviceType, setDeviceType] = useState<DeviceType>('Laptop');
+  // 2. ข้อมูลอุปกรณ์และรายละเอียดปัญหา
+  const [deviceType, setDeviceType] = useState<DeviceType | ''>('');
+  const [otherDeviceInputRef] = useState(() => React.createRef<HTMLInputElement>());
   const [deviceBrandModel, setDeviceBrandModel] = useState('');
+  const [otherDeviceText, setOtherDeviceText] = useState('');
   const [deviceSerialNumber, setDeviceSerialNumber] = useState('');
   const [problemDescription, setProblemDescription] = useState('');
-  const [additionalDetails, setAdditionalDetails] = useState('');
 
-  // ส่วนที่ 4: รายการบริการที่ร้องขอ (เลือกได้หลายรายการ ✓)
+  // 3. เลือกบริการที่ต้องการ (เลือกได้มากกว่า 1 รายการ)
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [otherServiceText, setOtherServiceText] = useState('');
-  const [status, setStatus] = useState<'Completed' | 'In Progress' | 'Pending'>('Completed');
+  const [estimatedCost, setEstimatedCost] = useState<string>('');
+
+  // 4. การยืนยันก่อนให้บริการและการรับทราบ
+  const [acknowledgedItems, setAcknowledgedItems] = useState<boolean[]>([true, true, true]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [previewDraftRecord, setPreviewDraftRecord] =
-    useState<ServiceRequestRecord | null>(null);
+  const [printRecord, setPrintRecord] = useState<ServiceRequestRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavedSuccess, setIsSavedSuccess] = useState(false);
   const [submittedReceiptRecord, setSubmittedReceiptRecord] =
     useState<ServiceRequestRecord | null>(null);
   const [bannerFeedback, setBannerFeedback] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+
+  const softwareServices = SERVICE_CATALOG.filter((s) => s.category === 'software');
+  const hardwareServices = SERVICE_CATALOG.filter((s) => s.category === 'hardware');
 
   useEffect(() => {
     if (editingRecord) {
@@ -108,11 +130,20 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       setFullName(editingRecord.FullName);
       setPhoneNumber(editingRecord.PhoneNumber);
       setDepartment(editingRecord.Department || '');
-      setDeviceType((editingRecord.DeviceType as DeviceType) || 'Laptop');
-      setDeviceBrandModel(editingRecord.DeviceBrandModel);
+      setReceiverName(editingRecord.ReceiverName || '');
+      setDeviceType((editingRecord.DeviceType as DeviceType) || '');
+      if (editingRecord.OtherDeviceText) {
+        setOtherDeviceText(editingRecord.OtherDeviceText);
+        setDeviceBrandModel(editingRecord.DeviceBrandModel || '');
+      } else {
+        const raw = editingRecord.DeviceBrandModel || '';
+        const m = raw.match(/^อุปกรณ์อื่น ๆ:\s*(.*?)\s*\|\s*(.*)$/);
+        setOtherDeviceText(m ? m[1] : '');
+        setDeviceBrandModel(m ? m[2] : raw);
+      }
       setDeviceSerialNumber(editingRecord.DeviceSerialNumber || '');
       setProblemDescription(editingRecord.ProblemDescription);
-      setAdditionalDetails(editingRecord.AdditionalDetails || '');
+      setEstimatedCost(editingRecord.AdditionalDetails || '');
       setSelectedServices(parseServicesList(editingRecord.RequestedServices));
       setOtherServiceText(editingRecord.OtherServiceText || '');
       setStatus(editingRecord.Status || 'Completed');
@@ -120,13 +151,26 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     }
   }, [editingRecord]);
 
-  const toggleServiceCheckbox = (service: RequestedServiceItem) => {
-    setSelectedServices((prev) =>
-      prev.includes(service) ? prev.filter((item) => item !== service) : [...prev, service]
-    );
+  const toggleServiceCheckbox = (serviceKey: string) => {
+    setSelectedServices((prev) => {
+      const next = prev.includes(serviceKey)
+        ? prev.filter((item) => item !== serviceKey)
+        : [...prev, serviceKey];
+      const autoSum = calculateEstimatedServiceCost(next);
+      setEstimatedCost(autoSum > 0 ? String(autoSum) : next.length > 0 ? '0' : '');
+      return next;
+    });
     if (errors.selectedServices) {
       setErrors((prev) => ({ ...prev, selectedServices: '' }));
     }
+  };
+
+  const toggleAcknowledgment = (idx: number) => {
+    setAcknowledgedItems((prev) => {
+      const next = [...prev];
+      next[idx] = !next[idx];
+      return next;
+    });
   };
 
   const handleRegenerateReceipt = () => {
@@ -139,33 +183,41 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     const nextErrors: Record<string, string> = {};
 
     if (!receiptNumber.trim()) {
-      nextErrors.receiptNumber = 'กรุณาระบุเลขที่ใบรับบริการ';
+      nextErrors.receiptNumber = 'ยังไม่มีเลขที่ใบรับบริการ กรุณากดปุ่ม "สร้างเลขใบรับบริการใหม่"';
     }
     if (!date.trim()) {
-      nextErrors.date = 'กรุณาระบุวันที่แจ้งขอรับบริการ';
+      nextErrors.date = 'กรุณาเลือกวันที่นำอุปกรณ์มารับบริการ';
     }
     if (!time.trim()) {
-      nextErrors.time = 'กรุณาระบุเวลาที่แจ้งขอรับบริการ';
+      nextErrors.time = 'กรุณาระบุเวลาที่นำอุปกรณ์มารับบริการ';
+    } else if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time.trim())) {
+      nextErrors.time = 'กรุณากรอกเวลาแบบ 24 ชั่วโมง เช่น 09:30 หรือ 19:42';
+    }
+    if (!deviceType) {
+      nextErrors.deviceType = 'กรุณาเลือกประเภทอุปกรณ์';
+    }
+    if (deviceType === 'Other' && !otherDeviceText.trim()) {
+      nextErrors.otherDeviceText = 'กรุณาระบุประเภทอุปกรณ์อื่น ๆ';
     }
     if (!fullName.trim()) {
-      nextErrors.fullName = 'กรุณากรอกชื่อ-นามสกุลของผู้ขอรับบริการ';
+      nextErrors.fullName = 'กรุณากรอกชื่อ–นามสกุล เพื่อให้ช่างติดต่อแจ้งผลการซ่อมได้ถูกต้อง';
     }
     if (!phoneNumber.trim()) {
-      nextErrors.phoneNumber = 'กรุณากรอกเบอร์โทรศัพท์ติดต่อ';
+      nextErrors.phoneNumber = 'กรุณากรอกเบอร์โทรศัพท์ที่ติดต่อได้ เช่น 081-234-5678';
     } else if (!/^[0-9+\-() ]{6,20}$/.test(phoneNumber.trim())) {
-      nextErrors.phoneNumber = 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (ตัวเลข 6–20 หลัก)';
+      nextErrors.phoneNumber = 'เบอร์โทรศัพท์ไม่ถูกต้อง กรุณากรอกเฉพาะตัวเลข 9–10 หลัก เช่น 081-234-5678';
+    }
+    if (!receiverName.trim()) {
+      nextErrors.receiverName = 'กรุณาเลือกช่าง IT Support ผู้รับเรื่อง (จากทั้ง 7 คน)';
     }
     if (!deviceBrandModel.trim()) {
-      nextErrors.deviceBrandModel = 'กรุณาระบุยี่ห้อและรุ่นของอุปกรณ์';
+      nextErrors.deviceBrandModel = 'กรุณาระบุยี่ห้อและรุ่นของอุปกรณ์ เช่น โน้ตบุ๊ก Asus หรือ PC ตั้งโต๊ะ';
     }
     if (!problemDescription.trim()) {
-      nextErrors.problemDescription = 'กรุณาระบุอาการเสียหรือปัญหาที่ต้องการให้ตรวจสอบ';
+      nextErrors.problemDescription = 'กรุณาอธิบายอาการเสียหรือปัญหาที่พบ เช่น เปิดไม่ติด จอฟ้า หรือเครื่องช้า';
     }
-    if (selectedServices.length === 0) {
-      nextErrors.selectedServices = 'กรุณาเลือกบริการที่ต้องการอย่างน้อย 1 รายการ (✓)';
-    }
-    if (selectedServices.includes('Other') && !otherServiceText.trim()) {
-      nextErrors.otherServiceText = 'กรุณาระบุรายละเอียดสำหรับบริการอื่นๆ';
+    if (selectedServices.length === 0 && !otherServiceText.trim()) {
+      nextErrors.selectedServices = 'กรุณาเลือกบริการที่ต้องการอย่างน้อย 1 รายการ หรือพิมพ์ระบุในช่อง "บริการอื่น ๆ"';
     }
 
     setErrors(nextErrors);
@@ -174,6 +226,15 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
 
   const buildCurrentDraftRecord = (): ServiceRequestRecord => {
     const nowIso = new Date().toISOString();
+    const finalServices = [...selectedServices];
+    if (otherServiceText.trim() && !finalServices.includes('Other')) {
+      finalServices.push('Other');
+    }
+    const computedCost =
+      estimatedCost.trim() !== ''
+        ? `${estimatedCost.trim()} บาท`
+        : `${calculateEstimatedServiceCost(finalServices)} บาท`;
+
     return {
       RecordID: editingRecord ? editingRecord.RecordID : generateRecordId(),
       ReceiptNumber: receiptNumber.trim(),
@@ -182,55 +243,96 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       FullName: fullName.trim(),
       PhoneNumber: phoneNumber.trim(),
       Department: department.trim(),
-      DeviceType: deviceType,
+      DeviceType: deviceType as DeviceType,
+      OtherDeviceText: deviceType === 'Other' ? otherDeviceText.trim() : '',
       DeviceBrandModel: deviceBrandModel.trim(),
       DeviceSerialNumber: deviceSerialNumber.trim(),
       ProblemDescription: problemDescription.trim(),
-      AdditionalDetails: additionalDetails.trim(),
-      RequestedServices: JSON.stringify(selectedServices),
-      OtherServiceText: selectedServices.includes('Other') ? otherServiceText.trim() : '',
+      AdditionalDetails: computedCost,
+      RequestedServices: JSON.stringify(finalServices),
+      OtherServiceText: otherServiceText.trim(),
+      ReceiverName: receiverName.trim(),
       Status: status,
       CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
       UpdatedAt: nowIso,
     };
   };
 
-  const handleInitialSubmit = (e: React.FormEvent) => {
+  const handleInitialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBannerFeedback(null);
     if (!validateForm()) {
+      toast.error('กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน');
       return;
     }
-    // แสดงตัวอย่างเอกสารขนาด A4 (Paper-Style Document Preview) ก่อนยืนยันการบันทึกจริง
-    setPreviewDraftRecord(buildCurrentDraftRecord());
+    const draft = buildCurrentDraftRecord();
+    await executeSaveRecord(draft, false);
   };
 
-  const handleConfirmedSave = async () => {
-    if (isSubmitting || !previewDraftRecord) return;
+  const handlePrintPreview = () => {
+    setBannerFeedback(null);
+    if (!validateForm()) {
+      toast.error('กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วนก่อนดูตัวอย่างการพิมพ์');
+      return;
+    }
+    const draft = buildCurrentDraftRecord();
+    setPrintRecord(draft);
+    setTimeout(() => {
+      window.print();
+    }, 60);
+  };
+
+  const executeSaveRecord = async (
+    recordToSave: ServiceRequestRecord,
+    shouldPrintImmediately: boolean
+  ) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     setBannerFeedback(null);
 
-    const recordToSave = previewDraftRecord;
-
     try {
       const result = await onSaveRecord(recordToSave, Boolean(editingRecord));
-      setPreviewDraftRecord(null);
 
       if (!result.success) {
+        const errorMsg =
+          result.error ||
+          'ไม่สามารถบันทึกใบแจ้งซ่อมได้ในขณะนี้ กรุณาตรวจสอบข้อมูลแล้วลองใหม่อีกครั้ง';
         setBannerFeedback({
           type: 'error',
-          message: result.error || 'ไม่สามารถบันทึกข้อมูลใบคำขอรับบริการได้',
+          message: errorMsg,
         });
+        toast.error(errorMsg);
         return;
       }
 
+      const successMessage = result.syncedToCloud
+        ? `ส่งใบแจ้งซ่อมเลขที่ ${recordToSave.ReceiptNumber} เรียบร้อยแล้ว ข้อมูลถูกบันทึกเข้าระบบออนไลน์พร้อมพิมพ์ใบรับบริการ`
+        : `บันทึกใบแจ้งซ่อมเลขที่ ${recordToSave.ReceiptNumber} ไว้ในเครื่องเรียบร้อยแล้ว ระบบจะอัปเดตขึ้นออนไลน์อัตโนมัติเมื่อเชื่อมต่ออินเทอร์เน็ต`;
+
       setSubmittedReceiptRecord(recordToSave);
+      setPrintRecord(recordToSave);
       setBannerFeedback({
         type: 'success',
-        message: result.syncedToCloud
-          ? `บันทึกใบคำขอรับบริการเลขที่ ${recordToSave.ReceiptNumber} ลงใน Google Sheets ("IT Support Requests") เรียบร้อยแล้ว`
-          : `บันทึกใบคำขอรับบริการเลขที่ ${recordToSave.ReceiptNumber} ลงในระบบสำรองเรียบร้อยแล้ว (พร้อมซิงก์ไปยัง Google Sheets)`,
+        message: successMessage,
       });
+
+      // แจ้งเตือน Tactile & Visual Feedback ทั้งบนปุ่ม และ Toast Notification ทันที
+      setIsSavedSuccess(true);
+      setTimeout(() => setIsSavedSuccess(false), 3000);
+
+      toast.success(
+        `ใบรับบริการเลขที่ ${recordToSave.ReceiptNumber} (${recordToSave.FullName || 'ไม่ระบุชื่อ'})`,
+        {
+          title: editingRecord ? 'บันทึกการแก้ไขเรียบร้อย' : 'บันทึกและออกใบรับบริการสำเร็จ',
+          action: {
+            label: 'พิมพ์ใบรับบริการ (A4)',
+            onClick: () => {
+              setPrintRecord(recordToSave);
+              setTimeout(() => window.print(), 60);
+            },
+          },
+        }
+      );
 
       if (!editingRecord) {
         const updatedReceipts = [...existingReceiptNumbers, recordToSave.ReceiptNumber];
@@ -240,16 +342,22 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         setFullName('');
         setPhoneNumber('');
         setDepartment('');
-        setDeviceType('Laptop');
+        setReceiverName('');
+        setDeviceType('');
         setDeviceBrandModel('');
+        setOtherDeviceText('');
         setDeviceSerialNumber('');
         setProblemDescription('');
-        setAdditionalDetails('');
+        setEstimatedCost('');
         setSelectedServices([]);
         setOtherServiceText('');
         setStatus('Completed');
-      } else if (onCancelEdit) {
-        onCancelEdit();
+      }
+
+      if (shouldPrintImmediately) {
+        setTimeout(() => {
+          window.print();
+        }, 300);
       }
     } finally {
       setIsSubmitting(false);
@@ -263,14 +371,14 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         <button
           type="button"
           onClick={onBackToDashboard}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+          className="min-h-[40px] px-2.5 py-1.5 -ml-2.5 rounded-xl inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
         >
-          <ArrowLeft className="w-4 h-4" />
-          กลับสู่หน้าแดชบอร์ดหลัก
+          <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
+          <span>กลับหน้าหลัก</span>
         </button>
 
         <Badge variant="emerald" icon={<FileSpreadsheet className="w-3.5 h-3.5" />}>
-          แผ่นงานปลายทาง: IT Support Requests
+          บันทึกข้อมูลและออกใบรับบริการขนาด A4 อัตโนมัติ
         </Badge>
       </div>
 
@@ -286,9 +394,15 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         >
           <div className="flex items-center gap-3 text-sm font-medium">
             {bannerFeedback.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <CheckCircle2
+                className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0"
+                aria-hidden="true"
+              />
             ) : (
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
+              <AlertCircle
+                className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0"
+                aria-hidden="true"
+              />
             )}
             <span>{bannerFeedback.message}</span>
           </div>
@@ -299,78 +413,83 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
               variant="success"
               size="sm"
               icon={<Printer className="w-3.5 h-3.5" />}
-              onClick={() => setSubmittedReceiptRecord(submittedReceiptRecord)}
+              onClick={() => {
+                setPrintRecord(submittedReceiptRecord);
+                setTimeout(() => {
+                  window.print();
+                }, 60);
+              }}
             >
-              ดูและพิมพ์ใบรับบริการ
+              พิมพ์ใบรับบริการ (A4)
             </Button>
           )}
         </div>
       )}
 
-      {/* การ์ดแบบฟอร์มหลัก */}
+      {/* การ์ดแบบฟอร์มหลัก (ตามต้นฉบับ IT SUPPORT แบบสอบถามและใบลงข้อมูลการขอรับบริการ) */}
       <form onSubmit={handleInitialSubmit} noValidate>
         <Card className="overflow-hidden">
-          {/* ส่วนหัวของแบบฟอร์ม */}
-          <div className="px-6 sm:px-8 py-6 bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* ส่วนหัวของแบบฟอร์มตามต้นฉบับ */}
+          <div className="px-6 sm:px-8 py-6 bg-blue-50/70 dark:bg-slate-800/50 border-b border-blue-200/70 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5">
               <div
-                className="p-3 rounded-2xl bg-blue-600 text-white shrink-0 mt-0.5"
+                className="p-3 rounded-2xl bg-[#1e3a8a] text-white shrink-0 mt-0.5 shadow-sm"
                 aria-hidden="true"
               >
                 <Wrench className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                <h1 className="text-xl sm:text-2xl font-bold text-[#1e3a8a] dark:text-white">
                   {editingRecord
-                    ? 'แก้ไขข้อมูลใบคำขอรับบริการ IT Support'
-                    : 'แบบฟอร์มขอรับบริการ IT Support (Service Request Form)'}
+                    ? 'แก้ไขแบบสอบถามและใบลงข้อมูลการขอรับบริการ IT SUPPORT'
+                    : 'IT SUPPORT — แบบสอบถามและใบลงข้อมูลการขอรับบริการ'}
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  กรอกข้อมูลผู้แจ้งซ่อม รายละเอียดอุปกรณ์ และเลือกบริการที่ต้องการเพื่อบันทึกลงในแผ่นงาน IT Support Requests
+                <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
+                  งานบริการด้านคอมพิวเตอร์และเทคโนโลยีสารสนเทศ • อาคาร 1 ชั้น 3 ห้อง 3
                 </p>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-left sm:text-right shrink-0">
+            <div className="bg-white dark:bg-slate-900 px-4 py-2.5 rounded-xl border border-blue-200 dark:border-slate-700 text-left sm:text-right shrink-0">
               <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 เลขที่ใบรับบริการอัตโนมัติ
               </div>
-              <div className="font-mono text-sm sm:text-base font-bold text-blue-600 dark:text-blue-400 tabular-nums-thai">
+              <div className="font-mono text-sm sm:text-base font-bold text-blue-700 dark:text-blue-400 tabular-nums-thai">
                 {receiptNumber}
               </div>
             </div>
           </div>
 
           <div className="p-6 sm:p-8 space-y-8">
-            {/* ส่วนที่ 1: ข้อมูลใบรับบริการ */}
-            <FormSection
-              stepNumber="1"
-              title="ข้อมูลใบรับบริการ (Receipt Information)"
-              description="ระบบสร้างเลขที่ใบรับบริการไม่ซ้ำกันโดยอัตโนมัติ และตั้งค่าวันที่/เวลาปัจจุบันให้พร้อมใช้งาน"
-              icon={<ClipboardList className="w-4 h-4" />}
-              rightElement={
-                !editingRecord && (
+            {/* ข้อมูลการรับเรื่อง (เลขที่ใบรับบริการ, วันที่, เวลา, สถานะ) */}
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <ClipboardList className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                  <span>ข้อมูลใบรับบริการ (ระบบออกเลขที่ให้อัตโนมัติ)</span>
+                </span>
+                {!editingRecord && (
                   <button
                     type="button"
                     onClick={handleRegenerateReceipt}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                    className="min-h-[34px] px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    สุ่มเลขที่ใบรับบริการใหม่
+                    <RefreshCw className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    <span>เปลี่ยนเลขใบรับบริการใหม่</span>
                   </button>
-                )
-              }
-            >
+                )}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <InputField
-                  label="เลขที่ใบรับบริการ (สร้างอัตโนมัติ)"
+                  label="เลขที่ใบรับบริการ"
                   readOnly
                   value={receiptNumber}
                   className="font-mono font-bold text-blue-700 dark:text-blue-400 tabular-nums-thai"
                 />
 
                 <InputField
-                  label="วันที่รับแจ้ง (แก้ไขได้)"
+                  label="วันที่นำเครื่องมาซ่อม"
                   type="date"
                   requiredMark
                   value={date}
@@ -378,28 +497,27 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   error={errors.date}
                 />
 
-                <InputField
-                  label="เวลารับแจ้ง"
-                  type="time"
+                <TimeField24
+                  label="เวลาที่รับเครื่อง"
                   requiredMark
                   value={time}
-                  onChange={(e) => setTime(e.target.value)}
+                  onChange={setTime}
+                  onSetCurrentTime={() => setTime(getCurrentTime24())}
                   error={errors.time}
-                  className="font-mono tabular-nums-thai"
                 />
               </div>
-            </FormSection>
+            </div>
 
-            {/* ส่วนที่ 2: ข้อมูลผู้ขอรับบริการ */}
+            {/* ส่วนที่ 1: ข้อมูลผู้ขอรับบริการและช่างผู้รับเรื่อง */}
             <FormSection
-              stepNumber="2"
-              title="ข้อมูลผู้ขอรับบริการ (Customer / Requester Information)"
-              description="ระบุชื่อและช่องทางติดต่อของผู้แจ้งซ่อมหรือผู้ขอรับบริการ"
+              stepNumber="1"
+              title="ข้อมูลผู้ขอรับบริการและเจ้าหน้าที่ผู้รับเรื่อง"
+              description="กรอกข้อมูลผู้ขอรับบริการ และเลือกช่างผู้รับเรื่อง (จากรายชื่อทั้ง 7 คน) เพื่อบันทึกลงในใบรับบริการ"
               icon={<UserCheck className="w-4 h-4" />}
             >
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <InputField
-                  label="ชื่อ-นามสกุล ผู้ขอรับบริการ"
+                  label="ชื่อ - นามสกุล"
                   name="fullName"
                   autoComplete="name"
                   requiredMark
@@ -408,7 +526,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                     setFullName(e.target.value);
                     if (errors.fullName) setErrors({ ...errors, fullName: '' });
                   }}
-                  placeholder="เช่น สมชาย ประเสริฐกุล"
+                  placeholder="เช่น สมชาย ใจดี"
                   error={errors.fullName}
                 />
 
@@ -429,50 +547,146 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                 />
 
                 <InputField
-                  label="หน่วยงาน / แผนก / คณะ"
+                  label="แผนก / สาขาวิชา"
                   name="department"
                   autoComplete="organization"
-                  optionalText="ไม่บังคับ"
+                  optionalText="ถ้ามี"
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  placeholder="เช่น ฝ่ายบัญชี / คณะวิศวกรรมศาสตร์"
+                  placeholder="เช่น ปวช. / บุคคลทั่วไป"
+                />
+
+                <SelectField
+                  label="ผู้รับเรื่อง (ช่าง IT)"
+                  name="receiverName"
+                  requiredMark
+                  value={receiverName}
+                  placeholder="เลือกช่างผู้รับเรื่อง"
+                  onChange={(e) => {
+                    setReceiverName(e.target.value);
+                    if (errors.receiverName) setErrors({ ...errors, receiverName: '' });
+                  }}
+                  options={[
+                    { value: '', label: '-- ไม่ระบุ / ล้างการเลือก --' },
+                    ...technicianOptions.map((t) => ({
+                      value: t.name,
+                      label: t.name,
+                      description: t.shift,
+                      group: t.shift,
+                      badge:
+                        t.groupKey === 'GROUP_1'
+                          ? 'วันจันทร์'
+                          : t.groupKey === 'GROUP_2'
+                          ? 'วันอังคาร'
+                          : 'วันศุกร์',
+                      badgeColor: (t.groupKey === 'GROUP_1'
+                        ? 'blue'
+                        : t.groupKey === 'GROUP_2'
+                        ? 'purple'
+                        : 'amber') as 'blue' | 'purple' | 'amber',
+                    })),
+                  ]}
+                  error={errors.receiverName}
                 />
               </div>
             </FormSection>
 
-            {/* ส่วนที่ 3: ข้อมูลอุปกรณ์และรายละเอียดอาการเสีย */}
+            {/* ส่วนที่ 2: ข้อมูลอุปกรณ์และรายละเอียดปัญหา */}
             <FormSection
-              stepNumber="3"
-              title="ข้อมูลอุปกรณ์และรายละเอียดปัญหา (Device & Problem Details)"
-              description="ระบุประเภทอุปกรณ์ รุ่น และอาการเสียที่ตรวจพบเพื่อให้ช่างเทคนิควิเคราะห์ได้แม่นยำ"
+              stepNumber="2"
+              title="ข้อมูลอุปกรณ์และอาการเสีย"
+              description="เลือกประเภทของปัญหา พร้อมระบุรุ่นอุปกรณ์และอาการเสียที่ต้องการให้ช่างตรวจเช็ก"
               icon={<Cpu className="w-4 h-4" />}
             >
               <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label
-                      htmlFor="device-type-select"
-                      className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
-                    >
-                      ประเภทอุปกรณ์ <span className="text-red-500 font-bold">*</span>
-                    </label>
-                    <select
-                      id="device-type-select"
-                      name="deviceType"
-                      value={deviceType}
-                      onChange={(e) => setDeviceType(e.target.value as DeviceType)}
-                      className="w-full min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-base sm:text-sm text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    >
-                      {DEVICE_TYPES.map((dt) => (
-                        <option key={dt} value={dt}>
-                          {DEVICE_TYPE_LABELS_TH[dt]}
-                        </option>
-                      ))}
-                    </select>
+                {/* ตัวเลือกประเภทอุปกรณ์ตามใบฟอร์มตัวอย่าง: ฮาร์ดแวร์ / ซอฟต์แวร์ / อื่น ๆ พร้อมช่องพิมพ์ข้อความทันที */}
+                <div className="space-y-3">
+                  <span className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    ประเภทอุปกรณ์ <span className="text-red-500 font-bold">*</span>
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {PRIMARY_DEVICE_TYPES.map((item) => {
+                      const active = deviceType === item.key;
+                      return (
+                        <label
+                          key={item.key}
+                          className={`flex items-center gap-3 p-3.5 min-h-[48px] rounded-xl border cursor-pointer select-none transition ${
+                            active
+                              ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-950/50 dark:border-blue-500 text-slate-900 dark:text-white font-semibold'
+                              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="deviceTypeRadio"
+                            checked={active}
+                            onChange={() => {
+                              setDeviceType(item.key);
+                              if (errors.deviceType) setErrors((prev) => ({ ...prev, deviceType: '' }));
+                              if (item.key === 'Other') {
+                                setTimeout(() => otherDeviceInputRef.current?.focus(), 20);
+                              }
+                            }}
+                            className="sr-only"
+                          />
+                          <span
+                            className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                              active
+                                ? 'bg-blue-600 border-blue-600 text-white'
+                                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {active && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </span>
+                          <span className="text-sm">{item.label}</span>
+                        </label>
+                      );
+                    })}
                   </div>
 
+                  {errors.deviceType && (
+                    <p role="alert" className="text-xs font-medium text-red-600 dark:text-red-400">{errors.deviceType}</p>
+                  )}
+
+                  {/* เมื่อเลือก "อื่น ๆ (ระบุรายละเอียด)" จะแสดงกล่องพิมพ์ข้อความด้านล่างทันทีและโฟกัสให้อัตโนมัติ */}
+                  {deviceType === 'Other' && (
+                    <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-300 dark:border-blue-800 animate-fadeIn">
+                      <label
+                        htmlFor="other-device-specify-input"
+                        className="block text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1.5"
+                      >
+                        โปรดระบุประเภทอุปกรณ์ / รายละเอียดอื่น ๆ{' '}
+                        <span className="text-red-500 font-bold">*</span>
+                      </label>
+                      <input
+                        ref={otherDeviceInputRef}
+                        id="other-device-specify-input"
+                        type="text"
+                        value={otherDeviceText}
+                        onChange={(e) => {
+                          setOtherDeviceText(e.target.value);
+                          if (errors.otherDeviceText) {
+                            setErrors({ ...errors, otherDeviceText: '' });
+                          }
+                        }}
+                        placeholder="พิมพ์ระบุอุปกรณ์อื่น ๆ หรือรายละเอียดที่ต้องการแจ้งที่นี่..."
+                        aria-invalid={errors.otherDeviceText ? 'true' : undefined}
+                        className="w-full min-h-[44px] rounded-xl border border-blue-400 dark:border-blue-600 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-base sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                      />
+                      {errors.otherDeviceText && (
+                        <p role="alert" className="mt-1.5 text-xs font-medium text-red-600 dark:text-red-400">
+                          {errors.otherDeviceText}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <InputField
-                    label="ยี่ห้อ / รุ่นอุปกรณ์ (Brand / Model)"
+                    label="ยี่ห้อและรุ่นของอุปกรณ์"
+                    name="deviceBrandModel"
                     requiredMark
                     value={deviceBrandModel}
                     onChange={(e) => {
@@ -481,84 +695,48 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                         setErrors({ ...errors, deviceBrandModel: '' });
                       }
                     }}
-                    placeholder="เช่น Dell Latitude 5420 / HP LaserJet"
+                    placeholder="เช่น โน้ตบุ๊ก Asus TUF, PC ตั้งโต๊ะ หรือเครื่องพิมพ์ Epson"
                     error={errors.deviceBrandModel}
                   />
 
                   <InputField
-                    label="หมายเลขเครื่อง (Serial Number)"
+                    label="หมายเลขเครื่อง (Serial Number / รหัสครุภัณฑ์)"
                     name="deviceSerialNumber"
                     autoCorrect="off"
                     autoCapitalize="none"
                     spellCheck={false}
-                    optionalText="ไม่บังคับ"
+                    optionalText="ถ้ามี"
                     value={deviceSerialNumber}
                     onChange={(e) => setDeviceSerialNumber(e.target.value)}
-                    placeholder="เช่น SN-98472310"
+                    placeholder="เช่น SN-98472310 (เว้นว่างได้หากไม่ทราบ)"
                     className="font-mono"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="problem-desc"
-                      className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
-                    >
-                      รายละเอียดอาการเสีย / ปัญหาที่พบ{' '}
-                      <span className="text-red-500 font-bold">*</span>
-                    </label>
-                    <textarea
-                      id="problem-desc"
-                      rows={3}
-                      value={problemDescription}
-                      onChange={(e) => {
-                        setProblemDescription(e.target.value);
-                        if (errors.problemDescription) {
-                          setErrors({ ...errors, problemDescription: '' });
-                        }
-                      }}
-                      placeholder="อธิบายอาการเสียหรือปัญหาที่ต้องการให้ตรวจสอบแก้ไข..."
-                      className={`w-full rounded-xl border px-3.5 py-2.5 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
-                        errors.problemDescription
-                          ? 'border-red-500 focus:ring-red-500/20'
-                          : 'border-slate-300 dark:border-slate-700 focus:border-blue-600 focus:ring-blue-500/20'
-                      }`}
-                    />
-                    {errors.problemDescription && (
-                      <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>{errors.problemDescription}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="additional-details"
-                      className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
-                    >
-                      รายละเอียดเพิ่มเติม / อุปกรณ์ที่นำมาฝากไว้{' '}
-                      <span className="text-xs font-normal text-slate-400">(ไม่บังคับ)</span>
-                    </label>
-                    <textarea
-                      id="additional-details"
-                      rows={3}
-                      value={additionalDetails}
-                      onChange={(e) => setAdditionalDetails(e.target.value)}
-                      placeholder="เช่น มีสายชาร์จอะแดปเตอร์ กระเป๋า หรือต้องการให้สำรองข้อมูลในไดรฟ์ D..."
-                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
-                  </div>
-                </div>
+                <TextareaField
+                  id="problem-desc"
+                  name="problemDescription"
+                  label="อาการเสียหรือปัญหาที่พบ"
+                  requiredMark
+                  rows={2}
+                  value={problemDescription}
+                  onChange={(e) => {
+                    setProblemDescription(e.target.value);
+                    if (errors.problemDescription) {
+                      setErrors({ ...errors, problemDescription: '' });
+                    }
+                  }}
+                  placeholder="อธิบายอาการเสีย เช่น เปิดเครื่องไม่ติด หน้าจอขึ้นสีฟ้า เชื่อมต่อ Wi-Fi ไม่ได้ หรือต้องการลงโปรแกรมใหม่..."
+                  error={errors.problemDescription}
+                />
               </div>
             </FormSection>
 
-            {/* ส่วนที่ 4: รายการบริการที่ร้องขอ (เลือกได้มากกว่า 1 รายการ ✓) */}
+            {/* ส่วนที่ 3: เลือกบริการที่ต้องการ (เลือกได้มากกว่า 1 รายการ) */}
             <FormSection
-              stepNumber="4"
-              title="รายการบริการที่ต้องการ (Requested Services — เลือกได้มากกว่า 1 รายการ ✓)"
-              description="ทำเครื่องหมายถูก (✓) หน้าบริการที่ต้องการให้ทีม IT Support ดำเนินการ"
+              stepNumber="3"
+              title="เลือกบริการที่ต้องการ (เลือกได้มากกว่า 1 รายการ)"
+              description="ติ๊กเลือกบริการที่ต้องการ ระบบจะรวมราคาประเมินเบื้องต้นให้โดยอัตโนมัติ"
               icon={<Wrench className="w-4 h-4" />}
               rightElement={
                 <Badge variant={selectedServices.length > 0 ? 'blue' : 'slate'}>
@@ -566,78 +744,236 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                 </Badge>
               }
             >
-              <fieldset className="space-y-3 border-0 p-0 m-0">
+              <fieldset
+                className="space-y-4 border-0 p-0 m-0"
+                aria-invalid={errors.selectedServices ? 'true' : undefined}
+                aria-describedby={errors.selectedServices ? 'selected-services-error' : undefined}
+              >
                 <legend className="sr-only">
-                  เลือกรายการบริการ IT Support ที่ต้องการ (เลือกได้มากกว่า 1 รายการ)
+                  เลือกบริการที่ต้องการ (ทำเครื่องหมายถูกได้มากกว่า 1 รายการ)
                 </legend>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {REQUESTED_SERVICES_LIST.map((service) => {
-                    const isChecked = selectedServices.includes(service);
-                    return (
-                      <CheckboxCard
-                        key={service}
-                        checked={isChecked}
-                        onChange={() => toggleServiceCheckbox(service)}
-                        title={getServiceThaiLabel(service)}
-                        subtitle={service}
-                      />
-                    );
-                  })}
+
+                {/* ตาราง 2 คอลัมน์ตามใบฟอร์มต้นฉบับ: ด้านคอมพิวเตอร์และซอฟต์แวร์ | ด้านฮาร์ดแวร์ */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 border border-blue-200 dark:border-slate-700 rounded-2xl overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-blue-200 dark:divide-slate-700">
+                  {/* คอลัมน์ซ้าย: ด้านคอมพิวเตอร์และซอฟต์แวร์ */}
+                  <div className="bg-white dark:bg-slate-900">
+                    <div className="grid grid-cols-12 bg-blue-100/80 dark:bg-slate-800 px-4 py-2.5 text-xs sm:text-sm font-bold text-[#1e3a8a] dark:text-blue-300 border-b border-blue-200 dark:border-slate-700">
+                      <div className="col-span-8">ด้านคอมพิวเตอร์และซอฟต์แวร์</div>
+                      <div className="col-span-4 text-right">ค่าบริการ</div>
+                    </div>
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {softwareServices.map((item) => {
+                        const checked = selectedServices.includes(item.key);
+                        return (
+                          <label
+                            key={item.key}
+                            className={`grid grid-cols-12 items-center px-4 py-3 min-h-[48px] cursor-pointer select-none transition ${
+                              checked
+                                ? 'bg-blue-50/70 dark:bg-blue-950/40 font-semibold text-slate-900 dark:text-white'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <div className="col-span-8 flex items-center gap-3 pr-2">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleServiceCheckbox(item.key)}
+                                className="sr-only"
+                              />
+                              <span
+                                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
+                                  checked
+                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                    : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                                }`}
+                                aria-hidden="true"
+                              >
+                                {checked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                              </span>
+                              <span className="text-xs sm:text-sm leading-snug">{item.labelTh}</span>
+                            </div>
+                            <div className="col-span-4 text-right text-xs sm:text-sm font-semibold tabular-nums-thai text-slate-800 dark:text-slate-200">
+                              {item.priceLabel}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* คอลัมน์ขวา: ด้านฮาร์ดแวร์ */}
+                  <div className="bg-white dark:bg-slate-900 flex flex-col">
+                    <div className="grid grid-cols-12 bg-blue-100/80 dark:bg-slate-800 px-4 py-2.5 text-xs sm:text-sm font-bold text-[#1e3a8a] dark:text-blue-300 border-b border-blue-200 dark:border-slate-700">
+                      <div className="col-span-8">ด้านฮาร์ดแวร์</div>
+                      <div className="col-span-4 text-right">ค่าบริการ</div>
+                    </div>
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800 flex-1">
+                      {hardwareServices.map((item) => {
+                        const checked = selectedServices.includes(item.key);
+                        return (
+                          <label
+                            key={item.key}
+                            className={`grid grid-cols-12 items-center px-4 py-3 min-h-[48px] cursor-pointer select-none transition ${
+                              checked
+                                ? 'bg-blue-50/70 dark:bg-blue-950/40 font-semibold text-slate-900 dark:text-white'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <div className="col-span-8 flex items-center gap-3 pr-2">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggleServiceCheckbox(item.key)}
+                                className="sr-only"
+                              />
+                              <span
+                                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
+                                  checked
+                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                    : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                                }`}
+                                aria-hidden="true"
+                              >
+                                {checked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                              </span>
+                              <span className="text-xs sm:text-sm leading-snug">{item.labelTh}</span>
+                            </div>
+                            <div className="col-span-4 text-right text-xs sm:text-sm font-semibold tabular-nums-thai text-slate-800 dark:text-slate-200">
+                              {item.priceLabel}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 {errors.selectedServices && (
-                  <p className="flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
+                  <p
+                    id="selected-services-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400"
+                  >
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                     <span>{errors.selectedServices}</span>
                   </p>
                 )}
 
-                {/* ช่องกรอกข้อมูลเพิ่มเติมเมื่อเลือก "Other" */}
-                {selectedServices.includes('Other') && (
-                  <div className="pt-2 animate-fadeIn">
+                {/* แถวระบุ "บริการอื่น ๆ / รายละเอียดเพิ่มเติม" และ "ประเมินค่าใช้จ่าย ____ บาท" ตามต้นฉบับ */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 pt-2">
+                  <div className="sm:col-span-8">
                     <InputField
-                      label="โปรดระบุรายละเอียดสำหรับบริการอื่นๆ"
+                      label="บริการอื่น ๆ / รายละเอียดเพิ่มเติม"
                       name="otherServiceText"
-                      requiredMark
+                      optionalText="ถ้ามี"
                       value={otherServiceText}
                       onChange={(e) => {
                         setOtherServiceText(e.target.value);
-                        if (errors.otherServiceText) {
-                          setErrors({ ...errors, otherServiceText: '' });
+                        if (errors.selectedServices) {
+                          setErrors({ ...errors, selectedServices: '' });
                         }
                       }}
-                      placeholder="ระบุบริการด้านไอทีอื่นๆ ที่ต้องการให้ดำเนินการ..."
-                      error={errors.otherServiceText}
+                      placeholder="ระบุบริการอื่น ๆ หรือรายละเอียดเพิ่มเติม..."
                     />
                   </div>
-                )}
+                  <div className="sm:col-span-4">
+                    <InputField
+                      label="ประเมินค่าใช้จ่าย (บาท)"
+                      name="estimatedCost"
+                      type="text"
+                      inputMode="numeric"
+                      value={estimatedCost}
+                      onChange={(e) => setEstimatedCost(e.target.value)}
+                      placeholder="คำนวณอัตโนมัติ (บาท)"
+                      className="font-mono font-bold text-blue-700 dark:text-blue-400 tabular-nums-thai"
+                    />
+                  </div>
+                </div>
               </fieldset>
             </FormSection>
 
-            {/* ส่วนท้ายสำหรับส่งข้อมูล */}
-            <div className="pt-5 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            {/* ส่วนที่ 4: การยืนยันก่อนให้บริการและการรับทราบ */}
+            <FormSection
+              stepNumber="4"
+              title="การยืนยันก่อนรับบริการ"
+              description="โปรดตรวจสอบและรับทราบเงื่อนไขการดูแลเครื่องก่อนส่งซ่อม"
+              icon={<FileText className="w-4 h-4" />}
+            >
+              <div className="rounded-2xl border border-blue-200 dark:border-slate-700 bg-blue-50/40 dark:bg-slate-800/40 p-4 space-y-2.5">
+                {ACKNOWLEDGMENT_ITEMS.map((text, idx) => {
+                  const checked = acknowledgedItems[idx];
+                  return (
+                    <label
+                      key={idx}
+                      className="flex items-start gap-3 py-1.5 cursor-pointer select-none text-xs sm:text-sm text-slate-700 dark:text-slate-200"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleAcknowledgment(idx)}
+                        className="sr-only"
+                      />
+                      <span
+                        className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
+                          checked
+                            ? 'bg-blue-600 border-blue-600 text-white'
+                            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {checked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                      </span>
+                      <span className="leading-relaxed">{text}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </FormSection>
+
+            {/* ส่วนท้ายสำหรับส่งข้อมูล (รูปแบบเดียวกับฟอร์มบันทึกเวลาปฏิบัติงาน) */}
+            <div className="pt-5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="text-xs text-slate-500 dark:text-slate-400">
                 ช่องที่มีเครื่องหมาย <span className="text-red-500 font-bold">*</span>{' '}
-                จำเป็นต้องกรอกให้ครบถ้วนก่อนบันทึกข้อมูลลงใน Google Sheets
+                จำเป็นต้องกรอกให้ครบถ้วน • สามารถกดดูตัวอย่างใบรับบริการขนาด A4 ก่อนบันทึกได้
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 {editingRecord && onCancelEdit && (
-                  <Button type="button" variant="outline" onClick={onCancelEdit}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCancelEdit}
+                    className="w-full sm:w-auto"
+                  >
                     ยกเลิกการแก้ไข
                   </Button>
                 )}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={isSubmitting}
+                  icon={<Printer className="w-4 h-4" />}
+                  onClick={handlePrintPreview}
+                  className="w-full sm:w-auto"
+                >
+                  ตัวอย่างการพิมพ์ (A4)
+                </Button>
 
                 <Button
                   type="submit"
                   variant="primary"
                   size="lg"
                   isLoading={isSubmitting}
+                  isSuccess={isSavedSuccess}
+                  successText="บันทึกสำเร็จเรียบร้อย"
                   icon={<Save className="w-4 h-4" />}
+                  className="w-full sm:w-auto"
                 >
                   {editingRecord
-                    ? 'บันทึกการแก้ไขใบคำขอรับบริการ'
-                    : 'ตรวจสอบและบันทึกใบคำขอรับบริการ'}
+                    ? 'บันทึกการแก้ไขใบรับบริการ'
+                    : 'บันทึกและออกใบรับบริการ'}
                 </Button>
               </div>
             </div>
@@ -645,38 +981,17 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         </Card>
       </form>
 
-      {/* หน้าต่างแสดงตัวอย่างเอกสารกระดาษ A4 ก่อนยืนยันการบันทึก (Paper-Style Document Preview) */}
-      <PaperDocumentPreviewModal
-        isOpen={Boolean(previewDraftRecord)}
-        mode="pre-submit"
+      {/* พอร์ทัลเอกสาร A4 ซ่อนบนหน้าจอแสดงผล 100% แต่จะแสดงเฉพาะขณะเรียก window.print() เท่านั้น */}
+      <PrintDocumentPortal
         payload={
-          previewDraftRecord
+          printRecord
             ? {
                 type: 'service-request',
-                record: previewDraftRecord,
+                record: printRecord,
                 isEdit: Boolean(editingRecord),
               }
             : null
         }
-        isSubmitting={isSubmitting}
-        onConfirmAndSubmit={handleConfirmedSave}
-        onEditInformation={() => setPreviewDraftRecord(null)}
-        onCancel={() => setPreviewDraftRecord(null)}
-      />
-
-      {/* หน้าต่างแสดงใบรับบริการขนาด A4 หลังบันทึกข้อมูลสำเร็จ */}
-      <PaperDocumentPreviewModal
-        isOpen={Boolean(submittedReceiptRecord)}
-        mode="view-only"
-        payload={
-          submittedReceiptRecord
-            ? {
-                type: 'service-request',
-                record: submittedReceiptRecord,
-              }
-            : null
-        }
-        onCancel={() => setSubmittedReceiptRecord(null)}
       />
     </div>
   );

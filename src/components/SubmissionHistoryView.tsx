@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Calendar,
+  Check,
   Download,
   Edit3,
   Eye,
@@ -32,10 +33,10 @@ import {
   formatDisplayTime,
   parseServicesList,
 } from '../utils/formatters';
-import { PaperDocumentPreviewModal } from './PaperDocumentPreviewModal';
+import { PaperDocumentPreviewModal, PrintDocumentPortal } from './PaperDocumentPreviewModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { SkeletonLoader } from './SkeletonLoader';
-import { Badge, Button, Card } from './ui/DesignSystem';
+import { Badge, Button, Card, toast } from './ui/DesignSystem';
 
 interface SubmissionHistoryViewProps {
   sheetsData: AllSheetsData;
@@ -65,6 +66,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<ServiceRequestRecord | null>(null);
+  const [printReceiptRecord, setPrintReceiptRecord] = useState<ServiceRequestRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{
     sheetKey: SheetKey;
     recordId: string;
@@ -142,6 +144,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
         STATUS_LABELS_TH[r.Status] || r.Status,
       ]);
       exportToExcelCSV('IT_Support_Requests_Export', headers, rows);
+      toast.info('ส่งออกไฟล์ข้อมูลใบแจ้งซ่อม Excel/CSV เรียบร้อยแล้ว');
     } else {
       const headers = [
         'ลำดับที่ (No.)',
@@ -167,15 +170,20 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
         ];
       });
       exportToExcelCSV(`${WORKSHEET_NAMES[activeSheet].replace(/\s+/g, '_')}_Export`, headers, rows);
+      toast.info(`ส่งออกไฟล์ Excel/CSV "${WORKSHEET_NAMES[activeSheet]}" เรียบร้อยแล้ว`);
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteTarget || isDeleting) return;
     setIsDeleting(true);
+    const targetLabel = deleteTarget.label;
     try {
       await onDeleteRecord(deleteTarget.sheetKey, deleteTarget.recordId);
       setDeleteTarget(null);
+      toast.success(`ลบรายการ "${targetLabel}" ออกจาก Google Sheets เรียบร้อยแล้ว`);
+    } catch {
+      toast.error('ไม่สามารถลบรายการได้ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsDeleting(false);
     }
@@ -239,42 +247,46 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
           </div>
         </div>
 
-        {/* แท็บสลับแผ่นงานทั้ง 4 แผ่นงาน */}
-        <div
-          className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800 pb-4"
-          role="tablist"
-          aria-label="เลือกแผ่นงาน Google Sheets"
-        >
-          {(['REQUESTS', 'GROUP_1', 'GROUP_2', 'GROUP_3'] as SheetKey[]).map((key) => {
-            const isSelected = activeSheet === key;
-            const count = sheetsData[key].length;
-            return (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={isSelected}
-                onClick={() => setActiveSheet(key)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition ${
-                  isSelected
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-              >
-                <FileSpreadsheet className="w-4 h-4 shrink-0" />
-                <span>{WORKSHEET_LABELS_TH[key]}</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs tabular-nums-thai ${
+        {/* แท็บสลับแผ่นงานทั้ง 4 แผ่นงาน พร้อมแถบเลื่อนแนวนอนและการบอกใบ้ (Scroll Hint) บนมือถือ */}
+        <div className="relative border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div
+            className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 overscroll-x-contain"
+            role="tablist"
+            aria-label="เลือกแผ่นงาน Google Sheets"
+          >
+            {(['REQUESTS', 'GROUP_1', 'GROUP_2', 'GROUP_3'] as SheetKey[]).map((key) => {
+              const isSelected = activeSheet === key;
+              const count = sheetsData[key].length;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={isSelected}
+                  onClick={() => setActiveSheet(key)}
+                  className={`min-h-[44px] shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
                     isSelected
-                      ? 'bg-white/20 text-white'
-                      : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                   }`}
                 >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+                  <FileSpreadsheet className="w-4 h-4 shrink-0" />
+                  <span>{WORKSHEET_LABELS_TH[key]}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs tabular-nums-thai ${
+                      isSelected
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Subtle scroll indicator for narrow screens */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-4 w-6 bg-gradient-to-l from-white dark:from-slate-900 to-transparent sm:hidden" aria-hidden="true" />
         </div>
 
         {/* ช่องค้นหาและตัวกรองวันที่ */}
@@ -358,133 +370,272 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
-                    <th scope="col" className="py-3.5 px-4 font-bold">เลขที่ใบรับบริการ</th>
-                    <th scope="col" className="py-3.5 px-4 font-bold">วันที่ / เวลา</th>
-                    <th scope="col" className="py-3.5 px-4 font-bold">ผู้ขอรับบริการ</th>
-                    <th scope="col" className="py-3.5 px-4 font-bold">อุปกรณ์และอาการเสีย</th>
-                    <th scope="col" className="py-3.5 px-4 font-bold">บริการที่ร้องขอ (✓)</th>
-                    <th scope="col" className="py-3.5 px-4 font-bold text-center">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {filteredRequests.map((rec) => {
-                    const services = parseServicesList(rec.RequestedServices);
-                    return (
-                      <tr
-                        key={rec.RecordID}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition"
-                      >
-                        <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap tabular-nums-thai">
-                          {rec.ReceiptNumber}
-                        </td>
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <div className="font-semibold text-slate-900 dark:text-white">
-                            {formatDisplayDate(rec.Date)}
+            <>
+              {/* รายการแบบ Mobile Card List สำหรับหน้าจอขนาดเล็ก (<640px) */}
+              <div className="sm:hidden divide-y divide-slate-200 dark:divide-slate-800">
+                {filteredRequests.map((rec) => {
+                  const services = parseServicesList(rec.RequestedServices);
+                  return (
+                    <article
+                      key={rec.RecordID}
+                      className="p-4 space-y-3 bg-white dark:bg-slate-900 transition hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-mono font-bold text-sm text-blue-600 dark:text-blue-400 tabular-nums-thai">
+                            {rec.ReceiptNumber}
                           </div>
-                          <div className="text-xs font-mono text-slate-500 tabular-nums-thai">
-                            {formatDisplayTime(rec.Time)}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="font-semibold text-slate-900 dark:text-white">
+                          <div className="text-xs font-semibold text-slate-900 dark:text-white mt-0.5">
                             {rec.FullName}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            <span className="font-mono">{rec.PhoneNumber}</span>
                             {rec.Department ? ` • ${rec.Department}` : ''}
                           </div>
-                        </td>
-                        <td className="py-3.5 px-4 max-w-xs">
-                          <div className="font-semibold text-slate-800 dark:text-slate-200">
-                            {getDeviceTypeThaiLabel(rec.DeviceType)} — {rec.DeviceBrandModel}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <Badge variant="blue" className="text-xs">
+                            {STATUS_LABELS_TH[rec.Status] || 'เสร็จสิ้น'}
+                          </Badge>
+                          <div className="text-[11px] font-mono text-slate-500 tabular-nums-thai mt-1">
+                            {formatDisplayDate(rec.Date)} {formatDisplayTime(rec.Time)}
                           </div>
-                          <div className="text-xs text-slate-500 truncate mt-0.5">
-                            {rec.ProblemDescription}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 max-w-xs">
-                          <div className="flex flex-wrap gap-1">
-                            {services.map((srv) => (
-                              <Badge key={srv} variant="blue" className="text-xs py-0.5 px-2">
-                                ✓ {getServiceThaiLabel(srv)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedReceipt(rec)}
-                              title="ดูรายละเอียดใบรับบริการ"
-                              aria-label={`ดูใบรับบริการ ${rec.ReceiptNumber}`}
-                              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition"
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                        <div className="font-semibold text-slate-900 dark:text-white">
+                          {getDeviceTypeThaiLabel(rec.DeviceType)} — {rec.DeviceBrandModel}
+                        </div>
+                        <div className="text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">
+                          {rec.ProblemDescription}
+                        </div>
+                      </div>
+
+                      {services.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {services.map((srv) => (
+                            <Badge
+                              key={srv}
+                              variant="blue"
+                              icon={<Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />}
+                              className="text-[11px] py-0.5 px-2"
                             >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedReceipt(rec)}
-                              title="พิมพ์ใบรับบริการ"
-                              aria-label={`พิมพ์ใบรับบริการ ${rec.ReceiptNumber}`}
-                              className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50 transition"
-                            >
-                              <Printer className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (isAuthorized) {
-                                  onEditServiceRequest(rec);
-                                } else {
-                                  onRequestAuthorization(
-                                    `ต้องการสิทธิ์เพื่อแก้ไขใบคำขอรับบริการ ${rec.ReceiptNumber}`,
-                                    () => onEditServiceRequest(rec)
-                                  );
-                                }
-                              }}
-                              title="แก้ไขข้อมูล"
-                              aria-label={`แก้ไขใบรับบริการ ${rec.ReceiptNumber}`}
-                              className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 transition"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const openDel = () =>
-                                  setDeleteTarget({
-                                    sheetKey: 'REQUESTS',
-                                    recordId: rec.RecordID,
-                                    label: `ใบรับบริการเลขที่ ${rec.ReceiptNumber} (${rec.FullName})`,
-                                  });
-                                if (isAuthorized) {
-                                  openDel();
-                                } else {
-                                  onRequestAuthorization(
-                                    `ต้องการสิทธิ์เพื่อลบใบคำขอรับบริการ ${rec.ReceiptNumber}`,
-                                    openDel
-                                  );
-                                }
-                              }}
-                              title="ลบรายการ"
-                              aria-label={`ลบใบรับบริการ ${rec.ReceiptNumber}`}
-                              className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 transition"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                              {getServiceThaiLabel(srv)}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Touch Target 44x44px Action Bar สำหรับมือถือ */}
+                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedReceipt(rec)}
+                          title="ดูรายละเอียดใบรับบริการ"
+                          aria-label={`ดูใบรับบริการ ${rec.ReceiptNumber}`}
+                          className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition active:scale-95"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPrintReceiptRecord(rec);
+                            setTimeout(() => {
+                              window.print();
+                            }, 60);
+                          }}
+                          title="พิมพ์ใบรับบริการ (A4)"
+                          aria-label={`พิมพ์ใบรับบริการ ${rec.ReceiptNumber}`}
+                          className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50 inline-flex items-center justify-center transition active:scale-95"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isAuthorized) {
+                              onEditServiceRequest(rec);
+                            } else {
+                              onRequestAuthorization(
+                                `ต้องการสิทธิ์เพื่อแก้ไขใบคำขอรับบริการ ${rec.ReceiptNumber}`,
+                                () => onEditServiceRequest(rec)
+                              );
+                            }
+                          }}
+                          title="แก้ไขข้อมูล"
+                          aria-label={`แก้ไขใบรับบริการ ${rec.ReceiptNumber}`}
+                          className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition active:scale-95"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const openDel = () =>
+                              setDeleteTarget({
+                                sheetKey: 'REQUESTS',
+                                recordId: rec.RecordID,
+                                label: `ใบรับบริการเลขที่ ${rec.ReceiptNumber} (${rec.FullName})`,
+                              });
+                            if (isAuthorized) {
+                              openDel();
+                            } else {
+                              onRequestAuthorization(
+                                `ต้องการสิทธิ์เพื่อลบใบคำขอรับบริการ ${rec.ReceiptNumber}`,
+                                openDel
+                              );
+                            }
+                          }}
+                          title="ลบรายการ"
+                          aria-label={`ลบใบรับบริการ ${rec.ReceiptNumber}`}
+                          className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition active:scale-95"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* ตารางแสดงผลสำหรับแท็บเล็ตและเดสก์ท็อป (sm ขึ้นไป) */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                      <th scope="col" className="py-3.5 px-4 font-bold">เลขที่ใบรับบริการ</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold">วันที่ / เวลา</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold">ผู้ขอรับบริการ</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold">อุปกรณ์และอาการเสีย</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold">บริการที่ร้องขอ</th>
+                      <th scope="col" className="py-3.5 px-4 font-bold text-center">จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    {filteredRequests.map((rec) => {
+                      const services = parseServicesList(rec.RequestedServices);
+                      return (
+                        <tr
+                          key={rec.RecordID}
+                          className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition"
+                        >
+                          <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap tabular-nums-thai">
+                            {rec.ReceiptNumber}
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="font-semibold text-slate-900 dark:text-white">
+                              {formatDisplayDate(rec.Date)}
+                            </div>
+                            <div className="text-xs font-mono text-slate-500 tabular-nums-thai">
+                              {formatDisplayTime(rec.Time)}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-semibold text-slate-900 dark:text-white">
+                              {rec.FullName}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              <span className="font-mono">{rec.PhoneNumber}</span>
+                              {rec.Department ? ` • ${rec.Department}` : ''}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 max-w-xs">
+                            <div className="font-semibold text-slate-800 dark:text-slate-200">
+                              {getDeviceTypeThaiLabel(rec.DeviceType)} — {rec.DeviceBrandModel}
+                            </div>
+                            <div className="text-xs text-slate-500 truncate mt-0.5">
+                              {rec.ProblemDescription}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 max-w-xs">
+                            <div className="flex flex-wrap gap-1">
+                              {services.map((srv) => (
+                                <Badge
+                                  key={srv}
+                                  variant="blue"
+                                  icon={<Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />}
+                                  className="text-xs py-0.5 px-2"
+                                >
+                                  {getServiceThaiLabel(srv)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedReceipt(rec)}
+                                title="ดูรายละเอียดใบรับบริการ"
+                                aria-label={`ดูใบรับบริการ ${rec.ReceiptNumber}`}
+                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPrintReceiptRecord(rec);
+                                  setTimeout(() => {
+                                    window.print();
+                                  }, 60);
+                                }}
+                                title="พิมพ์ใบรับบริการ (A4)"
+                                aria-label={`พิมพ์ใบรับบริการ ${rec.ReceiptNumber}`}
+                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50 inline-flex items-center justify-center transition"
+                              >
+                                <Printer className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isAuthorized) {
+                                    onEditServiceRequest(rec);
+                                  } else {
+                                    onRequestAuthorization(
+                                      `ต้องการสิทธิ์เพื่อแก้ไขใบคำขอรับบริการ ${rec.ReceiptNumber}`,
+                                      () => onEditServiceRequest(rec)
+                                    );
+                                  }
+                                }}
+                                title="แก้ไขข้อมูล"
+                                aria-label={`แก้ไขใบรับบริการ ${rec.ReceiptNumber}`}
+                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const openDel = () =>
+                                    setDeleteTarget({
+                                      sheetKey: 'REQUESTS',
+                                      recordId: rec.RecordID,
+                                      label: `ใบรับบริการเลขที่ ${rec.ReceiptNumber} (${rec.FullName})`,
+                                    });
+                                  if (isAuthorized) {
+                                    openDel();
+                                  } else {
+                                    onRequestAuthorization(
+                                      `ต้องการสิทธิ์เพื่อลบใบคำขอรับบริการ ${rec.ReceiptNumber}`,
+                                      openDel
+                                    );
+                                  }
+                                }}
+                                title="ลบรายการ"
+                                aria-label={`ลบใบรับบริการ ${rec.ReceiptNumber}`}
+                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </Card>
       ) : (
@@ -546,7 +697,101 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* รายการแบบ Mobile Card List สำหรับกลุ่มบันทึกเวลา (<640px) */}
+              <div className="sm:hidden divide-y divide-slate-200 dark:divide-slate-800">
+                {filteredWorkRecords.map((rec, idx) => {
+                  const anyRec = rec as unknown as Record<string, string>;
+                  const memberCount = activeSheet === 'GROUP_1' ? 2 : 3;
+                  return (
+                    <article
+                      key={rec.RecordID}
+                      className="p-4 space-y-3 bg-white dark:bg-slate-900 transition hover:bg-slate-50/70 dark:hover:bg-slate-800/40"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-mono font-bold text-sm text-blue-600 dark:text-blue-400 tabular-nums-thai">
+                            ลำดับที่ #{rec.SequenceNo || idx + 1}
+                          </div>
+                          <div className="text-xs font-semibold text-slate-900 dark:text-white mt-0.5">
+                            วันที่ {formatDisplayDate(rec.Date)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 tabular-nums-thai">
+                            {formatDisplayTime(rec.WorkStartTime)} – {formatDisplayTime(rec.WorkEndTime)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* รายชื่อและลายเซ็นสมาชิก */}
+                      <div className="space-y-1.5 pt-1">
+                        <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                          สมาชิกผู้ปฏิบัติงาน ({memberCount} คน):
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Array.from({ length: memberCount }).map((_, mIdx) => {
+                            const name = anyRec[`Member${mIdx + 1}Name`];
+                            const sig = anyRec[`Member${mIdx + 1}Signature`];
+                            return (
+                              <div
+                                key={mIdx}
+                                className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 text-xs"
+                              >
+                                {sig && (
+                                  <img
+                                    src={sig}
+                                    alt={name}
+                                    className="h-5 w-10 object-contain bg-white rounded border border-slate-100"
+                                  />
+                                )}
+                                <span className="font-medium text-slate-800 dark:text-slate-200">{name}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {rec.Remarks && (
+                        <div className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">หมายเหตุ: </span>
+                          {rec.Remarks}
+                        </div>
+                      )}
+
+                      {/* Touch Target 44x44px Action Bar สำหรับมือถือ */}
+                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                        <button
+                          type="button"
+                          title="ลบรายการ"
+                          aria-label={`ลบรายการแถวที่ #${rec.SequenceNo || idx + 1}`}
+                          onClick={() => {
+                            const openDel = () =>
+                              setDeleteTarget({
+                                sheetKey: activeSheet,
+                                recordId: rec.RecordID,
+                                label: `${WORKSHEET_LABELS_TH[activeSheet]} แถวที่ #${rec.SequenceNo}`,
+                              });
+                            if (isAuthorized) {
+                              openDel();
+                            } else {
+                              onRequestAuthorization(
+                                'ต้องการสิทธิ์เพื่อลบรายการบันทึกเวลาปฏิบัติงาน',
+                                openDel
+                              );
+                            }
+                          }}
+                          className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition active:scale-95"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* ตารางแสดงผลสำหรับจอแท็บเล็ตและเดสก์ท็อป (sm ขึ้นไป) */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs sm:text-sm">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800">
@@ -600,6 +845,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                             <button
                               type="button"
                               title="ลบรายการ"
+                              aria-label={`ลบรายการแถวที่ #${rec.SequenceNo || idx + 1}`}
                               onClick={() => {
                                 const openDel = () =>
                                   setDeleteTarget({
@@ -616,7 +862,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                   );
                                 }
                               }}
-                              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 transition"
+                              className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 inline-flex items-center justify-center transition"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -632,7 +878,19 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
         </Card>
       )}
 
-      {/* หน้าต่างแสดงและพิมพ์ใบรับบริการรูปแบบกระดาษ A4 */}
+      {/* พอร์ทัลเอกสาร A4 สำหรับสั่งพิมพ์ window.print() ทันทีโดยไม่ต้องเปิดหน้าต่าง Modal */}
+      <PrintDocumentPortal
+        payload={
+          printReceiptRecord
+            ? {
+                type: 'service-request',
+                record: printReceiptRecord,
+              }
+            : null
+        }
+      />
+
+      {/* หน้าต่างแสดงใบรับบริการรูปแบบกระดาษ A4 เมื่อกดไอคอนดวงตา (ดูรายละเอียด) */}
       <PaperDocumentPreviewModal
         isOpen={Boolean(selectedReceipt)}
         mode="view-only"

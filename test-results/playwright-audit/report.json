@@ -1,0 +1,362 @@
+{
+  "timestamp": "2026-11-18T18:14:12.987Z",
+  "environment": {
+    "frontendUrl": "http://127.0.0.1:3100",
+    "backendUrl": "http://127.0.0.1:4100"
+  },
+  "viewportsTested": [
+    {
+      "name": "desktop-1920x1080",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "name": "desktop-1440x900",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "name": "desktop-1366x768",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "name": "tablet-1024x768",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "name": "tablet-768x1024",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "name": "mobile-430x932",
+      "width": 430,
+      "height": 932
+    },
+    {
+      "name": "mobile-390x844",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "name": "mobile-375x812",
+      "width": 375,
+      "height": 812
+    }
+  ],
+  "themesTested": [
+    "light",
+    "dark"
+  ],
+  "testScenarios": [
+    {
+      "name": "Page Load & Title",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:24.782Z",
+      "title": "ระบบจัดการข้อมูลงานบริการและบันทึกเวลาปฏิบัติงาน IT Support"
+    },
+    {
+      "name": "Responsive Viewport: desktop-1920x1080",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:26.059Z",
+      "viewport": {
+        "name": "desktop-1920x1080",
+        "width": 1920,
+        "height": 1080
+      },
+      "noOverflowLight": true,
+      "noOverflowDark": true
+    },
+    {
+      "name": "Responsive Viewport: desktop-1440x900",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:27.297Z",
+      "viewport": {
+        "name": "desktop-1440x900",
+        "width": 1440,
+        "height": 900
+      },
+      "noOverflowLight": true,
+      "noOverflowDark": true
+    },
+    {
+      "name": "Responsive Viewport: desktop-1366x768",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:28.398Z",
+      "viewport": {
+        "name": "desktop-1366x768",
+        "width": 1366,
+        "height": 768
+      },
+      "noOverflowLight": true,
+      "noOverflowDark": true
+    },
+    {
+      "name": "Responsive Viewport: tablet-1024x768",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:32.002Z",
+      "viewport": {
+        "name": "tablet-1024x768",
+        "width": 1024,
+        "height": 768
+      },
+      "noOverflowLight": true,
+      "noOverflowDark": true
+    },
+    {
+      "name": "Responsive Viewport: tablet-768x1024",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:32.951Z",
+      "viewport": {
+        "name": "tablet-768x1024",
+        "width": 768,
+        "height": 1024
+      },
+      "noOverflowLight": true,
+      "noOverflowDark": true
+    },
+    {
+      "name": "Responsive Viewport: mobile-430x932",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:34.034Z",
+      "viewport": {
+        "name": "mobile-430x932",
+        "width": 430,
+        "height": 932
+      },
+      "noOverflowLight": true,
+      "noOverflowDark": true
+    },
+    {
+      "name": "Responsive Viewport: mobile-390x844",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:34.917Z",
+      "viewport": {
+        "name": "mobile-390x844",
+        "width": 390,
+        "height": 844
+      },
+      "noOverflowLight": true,
+      "noOverflowDark": true
+    },
+    {
+      "name": "Responsive Viewport: mobile-375x812",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:35.746Z",
+      "viewport": {
+        "name": "mobile-375x812",
+        "width": 375,
+        "height": 812
+      },
+      "noOverflowLight": true,
+      "noOverflowDark": true
+    },
+    {
+      "name": "Slide-out Navigation Drawer Open",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:36.281Z"
+    },
+    {
+      "name": "Drawer Close on Escape",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:37.189Z"
+    },
+    {
+      "name": "Service Request Form Navigation",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:49.025Z"
+    },
+    {
+      "name": "Custom SelectField Popover Open",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:49.398Z"
+    },
+    {
+      "name": "Custom SelectField Selection",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:49.765Z",
+      "selectedText": "ววัชรากร คำชมภูวันจันทร์"
+    },
+    {
+      "name": "Service Request Print Portal Ready",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:50.768Z"
+    },
+    {
+      "name": "Work Time Form (work-time-group-1) Signature Canvas",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:51.778Z"
+    },
+    {
+      "name": "Work Time Form (work-time-group-2) Signature Canvas",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:57.547Z"
+    },
+    {
+      "name": "Work Time Form (work-time-group-3) Signature Canvas",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:58.530Z"
+    },
+    {
+      "name": "Submission History Navigation",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:59.564Z"
+    },
+    {
+      "name": "History Desktop Table Rendered",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:59.566Z"
+    },
+    {
+      "name": "History Mobile Responsive Cards (375px)",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:59.911Z"
+    },
+    {
+      "name": "History Mobile No Horizontal Overflow",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:14:59.966Z"
+    },
+    {
+      "name": "Authorization Modal Open",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:15:00.423Z"
+    },
+    {
+      "name": "Authorization Invalid PIN Rejection",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:15:00.769Z"
+    },
+    {
+      "name": "Authorization Valid PIN (1234) Unlock",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:15:01.209Z"
+    },
+    {
+      "name": "Setup View Navigation",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:15:02.530Z"
+    },
+    {
+      "name": "Setup Code Copy Button Accessible",
+      "status": "passed",
+      "timestamp": "2026-11-18T18:15:02.552Z"
+    }
+  ],
+  "diagnostics": {
+    "consoleErrors": [],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowIssues": []
+  },
+  "screenshots": [
+    {
+      "viewport": "desktop-1920x1080",
+      "theme": "light",
+      "file": "dashboard-desktop-1920x1080-light.png"
+    },
+    {
+      "viewport": "desktop-1920x1080",
+      "theme": "dark",
+      "file": "dashboard-desktop-1920x1080-dark.png"
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "theme": "light",
+      "file": "dashboard-desktop-1440x900-light.png"
+    },
+    {
+      "viewport": "desktop-1440x900",
+      "theme": "dark",
+      "file": "dashboard-desktop-1440x900-dark.png"
+    },
+    {
+      "viewport": "desktop-1366x768",
+      "theme": "light",
+      "file": "dashboard-desktop-1366x768-light.png"
+    },
+    {
+      "viewport": "desktop-1366x768",
+      "theme": "dark",
+      "file": "dashboard-desktop-1366x768-dark.png"
+    },
+    {
+      "viewport": "tablet-1024x768",
+      "theme": "light",
+      "file": "dashboard-tablet-1024x768-light.png"
+    },
+    {
+      "viewport": "tablet-1024x768",
+      "theme": "dark",
+      "file": "dashboard-tablet-1024x768-dark.png"
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "theme": "light",
+      "file": "dashboard-tablet-768x1024-light.png"
+    },
+    {
+      "viewport": "tablet-768x1024",
+      "theme": "dark",
+      "file": "dashboard-tablet-768x1024-dark.png"
+    },
+    {
+      "viewport": "mobile-430x932",
+      "theme": "light",
+      "file": "dashboard-mobile-430x932-light.png"
+    },
+    {
+      "viewport": "mobile-430x932",
+      "theme": "dark",
+      "file": "dashboard-mobile-430x932-dark.png"
+    },
+    {
+      "viewport": "mobile-390x844",
+      "theme": "light",
+      "file": "dashboard-mobile-390x844-light.png"
+    },
+    {
+      "viewport": "mobile-390x844",
+      "theme": "dark",
+      "file": "dashboard-mobile-390x844-dark.png"
+    },
+    {
+      "viewport": "mobile-375x812",
+      "theme": "light",
+      "file": "dashboard-mobile-375x812-light.png"
+    },
+    {
+      "viewport": "mobile-375x812",
+      "theme": "dark",
+      "file": "dashboard-mobile-375x812-dark.png"
+    },
+    {
+      "name": "drawer",
+      "file": "drawer-navigation.png"
+    },
+    {
+      "name": "select-popover",
+      "file": "custom-select-popover.png"
+    },
+    {
+      "name": "form-filled",
+      "file": "service-request-form-filled.png"
+    },
+    {
+      "name": "history-mobile",
+      "file": "history-mobile-cards-375px.png"
+    },
+    {
+      "name": "setup-desktop",
+      "file": "google-sheets-setup-desktop.png"
+    }
+  ],
+  "summary": {
+    "total": 27,
+    "passed": 27,
+    "failed": 0,
+    "warnings": 0
+  }
+}

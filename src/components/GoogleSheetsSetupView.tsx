@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import {
+  Check,
   CheckCircle2,
   CloudUpload,
   Copy,
   Database,
   ExternalLink,
-  FileSpreadsheet,
   KeyRound,
   RefreshCw,
   Server,
@@ -21,7 +21,7 @@ import {
   testGoogleSheetsConnection,
 } from '../services/googleSheetsService';
 import gasSourceCode from '../../google-apps-script/Code.gs?raw';
-import { Badge, Button, Card } from './ui/DesignSystem';
+import { Badge, Button, Card, toast } from './ui/DesignSystem';
 
 interface GoogleSheetsSetupViewProps {
   isConnected: boolean;
@@ -65,15 +65,17 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
           type: 'success',
           text: `${result.message} • แผ่นงานที่พร้อมใช้งาน: ${
             result.sheets?.join(', ') ||
-            'IT Support Requests, Work Time - Group 1, Work Time - Group 2, Work Time - Group 3'
+            'IT Support Requests, Work Time - Monday Technician, Work Time - Tuesday Technician, Work Time - Friday Technician'
           }`,
         });
+        toast.success('เชื่อมต่อ Google Sheets สำเร็จเรียบร้อย');
         await onConnectionUpdated();
       } else {
         setStatusMsg({
           type: 'error',
           text: result.message,
         });
+        toast.error(result.message || 'ไม่สามารถเชื่อมต่อ Google Sheets ได้');
       }
     } finally {
       setTesting(false);
@@ -86,10 +88,16 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
     try {
       const res = await syncPendingRecordsToCloud();
       await onConnectionUpdated();
+      const syncText = `ซิงก์ข้อมูลขึ้น Google Sheets เสร็จสมบูรณ์: สำเร็จ ${res.syncedCount} รายการ (ไม่สำเร็จ ${res.failedCount} รายการ)`;
       setStatusMsg({
         type: res.failedCount === 0 ? 'success' : 'error',
-        text: `ซิงก์ข้อมูลขึ้น Google Sheets เสร็จสมบูรณ์: สำเร็จ ${res.syncedCount} รายการ (ไม่สำเร็จ ${res.failedCount} รายการ)`,
+        text: syncText,
       });
+      if (res.failedCount === 0) {
+        toast.success(`ซิงก์ข้อมูลขึ้น Google Sheets สำเร็จ ${res.syncedCount} รายการ`);
+      } else {
+        toast.error(`ซิงก์สำเร็จ ${res.syncedCount} รายการ (ไม่สำเร็จ ${res.failedCount} รายการ)`);
+      }
     } finally {
       setSyncing(false);
     }
@@ -99,6 +107,7 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
     try {
       await navigator.clipboard.writeText(gasSourceCode);
       setCopiedCode(true);
+      toast.success('คัดลอกโค้ด Google Apps Script ไปยังคลิปบอร์ดแล้ว');
       setTimeout(() => setCopiedCode(false), 2500);
     } catch {
       // ignore
@@ -110,20 +119,20 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
     if (newPin.trim().length >= 4) {
       setAdminPasscode(newPin.trim());
       setPinSaved(true);
+      toast.success('บันทึกรหัสผ่านเจ้าหน้าที่ใหม่เรียบร้อยแล้ว');
       setTimeout(() => setPinSaved(false), 2500);
+    } else {
+      toast.error('รหัสผ่านต้องมีความยาวอย่างน้อย 4 หลัก');
     }
   };
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fadeIn">
-      {/* ส่วนหัวหน้าตั้งค่า */}
+      {/* ส่วนหัวหน้าตั้งค่า (ปฏิบัติตามกฎ No-Kicker Rule ของ DESIGN.md) */}
       <Card className="p-6 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-2 max-w-2xl">
-            <Badge variant="emerald" icon={<FileSpreadsheet className="w-3.5 h-3.5" />}>
-              การเชื่อมต่อฐานข้อมูล Google Sheets & Google Apps Script API
-            </Badge>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
               ตั้งค่าระบบเชื่อมต่อฐานข้อมูล Google Sheets
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -140,17 +149,18 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
               className={`inline-block h-2.5 w-2.5 rounded-full mr-2 ${
                 isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
               }`}
+              aria-hidden="true"
             />
-            {isConnected ? 'เชื่อมต่อ Google Sheets แล้ว' : 'รอการระบุ Web App URL'}
+            <span>{isConnected ? 'เชื่อมต่อ Google Sheets แล้ว' : 'รอการระบุ Web App URL'}</span>
           </Badge>
         </div>
       </Card>
 
       {/* ฟอร์มกำหนดค่า URL และคู่มือการติดตั้ง */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <Card className="lg:col-span-7 p-6 space-y-5">
           <div className="flex items-center gap-2.5">
-            <Server className="w-5 h-5 text-blue-600 shrink-0" />
+            <Server className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               1. ระบุ URL ของ Google Apps Script Web App
             </h2>
@@ -160,7 +170,7 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
             <div>
               <label
                 htmlFor="gas-url-input"
-                className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
+                className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
               >
                 Web App URL ที่ได้จากการ Deploy (`https://script.google.com/macros/s/.../exec`)
               </label>
@@ -170,7 +180,7 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
                 placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-2.5 text-sm font-mono text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-base sm:text-sm font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
               <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 คุณสามารถวาง URL ที่นี่ได้โดยตรง หรือกำหนดค่าผ่านตัวแปรสภาพแวดล้อม{' '}
@@ -191,9 +201,15 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
                 }`}
               >
                 {statusMsg.type === 'success' ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <CheckCircle2
+                    className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <ShieldAlert
+                    className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
+                    aria-hidden="true"
+                  />
                 )}
                 <span>{statusMsg.text}</span>
               </div>
@@ -223,42 +239,42 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
             </div>
           </form>
 
-          {/* รายละเอียดแผ่นงานทั้ง 4 แผ่นงานที่ระบบสร้างให้อัตโนมัติ */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
-            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400">
+          {/* รายละเอียดแผ่นงานทั้ง 4 แผ่นงานที่ระบบสร้างให้อัตโนมัติ (Divided Ledger Grid — ไม่ซ้อนการ์ดหลายชั้น) */}
+          <div className="pt-5 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <h3 className="text-xs font-bold text-slate-600 dark:text-slate-300">
               โครงสร้างแผ่นงาน Google Sheets ทั้ง 4 แผ่นงาน (สร้างหัวตารางอัตโนมัติ)
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden text-xs bg-slate-50/50 dark:bg-slate-950/40">
+              <div className="p-3.5 space-y-1">
                 <div className="font-bold font-mono text-blue-600 dark:text-blue-400">
                   1. IT Support Requests
                 </div>
-                <div className="text-slate-500 dark:text-slate-400 mt-0.5">
+                <div className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   จัดเก็บใบคำขอรับบริการ ข้อมูลผู้แจ้ง รายละเอียดอุปกรณ์ และบริการที่เลือก
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+              <div className="p-3.5 space-y-1">
                 <div className="font-bold font-mono text-slate-800 dark:text-slate-200">
-                  2. Work Time - Group 1
+                  2. Work Time - Monday Technician
                 </div>
-                <div className="text-slate-500 dark:text-slate-400 mt-0.5">
-                  จัดเก็บเวลาปฏิบัติงานกลุ่มที่ 1 พร้อมคอลัมน์ลายมือชื่อดิจิทัล 2 คน
-                </div>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
-                <div className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                  3. Work Time - Group 2
-                </div>
-                <div className="text-slate-500 dark:text-slate-400 mt-0.5">
-                  จัดเก็บเวลาปฏิบัติงานกลุ่มที่ 2 พร้อมคอลัมน์ลายมือชื่อดิจิทัล 3 คน
+                <div className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                  จัดเก็บเวลาปฏิบัติงานช่างวันจันทร์ พร้อมคอลัมน์ลายมือชื่อดิจิทัล 2 คน
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
-                <div className="font-bold font-mono text-amber-600 dark:text-amber-400">
-                  4. Work Time - Group 3
+              <div className="p-3.5 space-y-1 sm:border-t border-slate-200 dark:border-slate-800">
+                <div className="font-bold font-mono text-emerald-700 dark:text-emerald-400">
+                  3. Work Time - Tuesday Technician
                 </div>
-                <div className="text-slate-500 dark:text-slate-400 mt-0.5">
-                  จัดเก็บเวลาปฏิบัติงานกลุ่มที่ 3 พร้อมคอลัมน์ลายมือชื่อดิจิทัล 3 คน
+                <div className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                  จัดเก็บเวลาปฏิบัติงานช่างวันอังคาร พร้อมคอลัมน์ลายมือชื่อดิจิทัล 2 คน
+                </div>
+              </div>
+              <div className="p-3.5 space-y-1 sm:border-t border-slate-200 dark:border-slate-800">
+                <div className="font-bold font-mono text-amber-800 dark:text-amber-400">
+                  4. Work Time - Friday Technician
+                </div>
+                <div className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                  จัดเก็บเวลาปฏิบัติงานช่างวันศุกร์ พร้อมคอลัมน์ลายมือชื่อดิจิทัล 3 คน
                 </div>
               </div>
             </div>
@@ -268,10 +284,10 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
         {/* คู่มือการติดตั้งและตั้งค่ารหัสผ่านเจ้าหน้าที่ */}
         <div className="lg:col-span-5 space-y-6">
           <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
-              <BookOpen className="w-5 h-5 text-blue-600 shrink-0" />
+            <h2 className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+              <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
               <span>ขั้นตอนการติดตั้ง Google Apps Script</span>
-            </div>
+            </h2>
             <ol className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300 list-decimal pl-4 leading-relaxed">
               <li>
                 สร้างไฟล์ Google Sheets ใหม่ที่{' '}
@@ -281,7 +297,8 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
                   rel="noreferrer"
                   className="text-blue-600 dark:text-blue-400 font-semibold inline-flex items-center gap-0.5 hover:underline"
                 >
-                  sheets.new <ExternalLink className="w-3 h-3" />
+                  <span>sheets.new</span>
+                  <ExternalLink className="w-3 h-3" aria-hidden="true" />
                 </a>
               </li>
               <li>
@@ -293,7 +310,10 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
                 <code className="font-mono">google-apps-script/Code.gs</code>) ไปวางแทนที่โค้ดเดิมทั้งหมดแล้วกดบันทึก
               </li>
               <li>
-                คลิกปุ่ม <strong>ทำให้ใช้งานได้ (Deploy) → การทำให้ใช้งานได้รายการใหม่ (New deployment)</strong>{' '}
+                คลิกปุ่ม{' '}
+                <strong>
+                  ทำให้ใช้งานได้ (Deploy) → การทำให้ใช้งานได้รายการใหม่ (New deployment)
+                </strong>{' '}
                 แล้วเลือกประเภทเป็น <strong>เว็บแอป (Web app)</strong>
               </li>
               <li>
@@ -308,24 +328,37 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
 
           {/* ตั้งค่ารหัสผ่านเจ้าหน้าที่ */}
           <Card className="p-6 space-y-3">
-            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
-              <KeyRound className="w-5 h-5 text-amber-600 shrink-0" />
+            <h2 className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+              <KeyRound className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true" />
               <span>ตั้งค่ารหัสผ่านเจ้าหน้าที่ (PIN)</span>
-            </div>
+            </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               ใช้สำหรับยืนยันสิทธิ์ก่อนแก้ไขหรือลบรายการข้อมูลในระบบ (ค่าเริ่มต้น: 1234)
             </p>
-            <form onSubmit={handleUpdatePin} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value)}
-                minLength={4}
-                aria-label="รหัสผ่านเจ้าหน้าที่ใหม่"
-                className="flex-1 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-mono text-slate-900 dark:text-white"
-              />
-              <Button type="submit" variant="secondary" size="sm">
-                {pinSaved ? 'บันทึกแล้ว ✓' : 'เปลี่ยนรหัส PIN'}
+            <form onSubmit={handleUpdatePin} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
+              <div className="flex-1">
+                <label htmlFor="admin-pin-setup-input" className="sr-only">
+                  รหัสผ่านเจ้าหน้าที่ใหม่ (อย่างน้อย 4 หลัก)
+                </label>
+                <input
+                  id="admin-pin-setup-input"
+                  type="text"
+                  value={newPin}
+                  onChange={(e) => setNewPin(e.target.value)}
+                  minLength={4}
+                  required
+                  placeholder="อย่างน้อย 4 หลัก"
+                  className="w-full min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-base sm:text-sm font-mono text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+              <Button
+                type="submit"
+                variant={pinSaved ? 'success' : 'secondary'}
+                size="md"
+                className="shrink-0"
+                icon={pinSaved ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : undefined}
+              >
+                {pinSaved ? 'บันทึกแล้ว' : 'เปลี่ยนรหัส PIN'}
               </Button>
             </form>
           </Card>
@@ -333,22 +366,29 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
       </div>
 
       {/* โค้ด Google Apps Script พร้อมปุ่มคัดลอกในคลิกเดียว */}
-      <div className="rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-lg overflow-hidden">
+      <div className="rounded-2xl bg-slate-900 text-slate-100 border border-slate-800 shadow-sm overflow-hidden">
         <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <Database className="w-4 h-4 text-emerald-400" />
+            <Database className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
             <span className="font-mono text-xs sm:text-sm font-bold">
               google-apps-script/Code.gs (โค้ด Backend API สำหรับวางใน Google Sheets)
             </span>
           </div>
           <Button
             type="button"
-            variant="primary"
+            variant={copiedCode ? 'success' : 'outline'}
             size="sm"
-            icon={<Copy className="w-3.5 h-3.5" />}
+            icon={
+              copiedCode ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )
+            }
             onClick={handleCopyGasCode}
+            className={copiedCode ? '' : 'bg-slate-900 hover:bg-slate-800 text-slate-100 border-slate-700'}
           >
-            {copiedCode ? 'คัดลอกโค้ดเรียบร้อยแล้ว!' : 'คัดลอกโค้ด Google Apps Script ทั้งหมด'}
+            {copiedCode ? 'คัดลอกโค้ดเรียบร้อยแล้ว' : 'คัดลอกโค้ด Google Apps Script ทั้งหมด'}
           </Button>
         </div>
         <pre className="p-6 text-xs font-mono overflow-x-auto max-h-96 leading-relaxed text-slate-300">

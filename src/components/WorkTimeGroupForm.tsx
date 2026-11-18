@@ -6,6 +6,7 @@ import {
   Clock,
   Download,
   Edit3,
+  Eye,
   FileSpreadsheet,
   Lock,
   PlusCircle,
@@ -28,11 +29,12 @@ import {
   formatDisplayTime,
   generateRecordId,
   getCurrentDateISO,
+  getCurrentTime24,
 } from '../utils/formatters';
 import { SignaturePadField } from './SignaturePadField';
 import { ConfirmDialog } from './ConfirmDialog';
-import { PaperDocumentPreviewModal } from './PaperDocumentPreviewModal';
-import { Badge, Button, Card, InputField } from './ui/DesignSystem';
+import { PrintDocumentPortal, PaperPreviewPayload } from './PaperDocumentPreviewModal';
+import { Badge, Button, Card, Drawer, IconButton, InputField, TimeField24, toast } from './ui/DesignSystem';
 
 interface WorkTimeGroupFormProps {
   groupConfig: GroupConfig;
@@ -60,7 +62,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   onDeleteWorkRecord,
   onBackToDashboard,
 }) => {
-  const { id: sheetKey, groupNumber, memberCount, worksheetName } = groupConfig;
+  const { id: sheetKey, groupNumber, dayTechnicianLabel, memberCount, worksheetName } = groupConfig;
   const memberStorageKey = `it_support_member_names_${sheetKey}_v1`;
 
   const getInitialNames = (): string[] => {
@@ -68,7 +70,11 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       const saved = localStorage.getItem(memberStorageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === memberCount) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.length === memberCount &&
+          !parsed.some((n) => String(n).startsWith('สมาชิกคนที่'))
+        ) {
           return parsed;
         }
       }
@@ -79,8 +85,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   };
 
   const [date, setDate] = useState<string>(() => getCurrentDateISO());
-  const [workStartTime, setWorkStartTime] = useState<string>('08:30');
-  const [workEndTime, setWorkEndTime] = useState<string>('17:30');
+  const [workStartTime, setWorkStartTime] = useState<string>(() => getCurrentTime24());
+  const [workEndTime, setWorkEndTime] = useState<string>('16:00');
   const [remarks, setRemarks] = useState<string>('');
 
   const [memberNames, setMemberNames] = useState<string[]>(getInitialNames);
@@ -89,11 +95,12 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   );
 
   const [editingRecord, setEditingRecord] = useState<AnyWorkTimeRecord | null>(null);
+  const [drawerWorkRecord, setDrawerWorkRecord] = useState<AnyWorkTimeRecord | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [previewDraftWorkRecord, setPreviewDraftWorkRecord] =
-    useState<AnyWorkTimeRecord | null>(null);
+  const [printWorkPayload, setPrintWorkPayload] = useState<PaperPreviewPayload | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<AnyWorkTimeRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavedSuccess, setIsSavedSuccess] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -101,9 +108,11 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
 
   useEffect(() => {
     setEditingRecord(null);
+    setDrawerWorkRecord(null);
+    setPrintWorkPayload(null);
     setDate(getCurrentDateISO());
-    setWorkStartTime('08:30');
-    setWorkEndTime('17:30');
+    setWorkStartTime(getCurrentTime24());
+    setWorkEndTime('16:00');
     setRemarks('');
     setMemberNames(getInitialNames());
     setMemberSignatures(Array(memberCount).fill(''));
@@ -187,15 +196,19 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
 
   const validateEntry = (): boolean => {
     const nextErrors: Record<string, string> = {};
-    if (!date.trim()) nextErrors.date = 'กรุณาระบุวันที่ปฏิบัติงาน';
-    if (!workStartTime.trim()) nextErrors.workStartTime = 'กรุณาระบุเวลาเริ่มปฏิบัติงาน';
-    if (!workEndTime.trim()) nextErrors.workEndTime = 'กรุณาระบุเวลาสิ้นสุดการปฏิบัติงาน';
+    if (!date.trim()) nextErrors.date = 'กรุณาเลือกวันที่มาปฏิบัติงาน';
+    if (!workStartTime.trim()) nextErrors.workStartTime = 'กรุณาระบุเวลาเข้างาน';
+    else if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(workStartTime.trim()))
+      nextErrors.workStartTime = 'กรุณากรอกเวลาแบบ 24 ชั่วโมง เช่น 08:30';
+    if (!workEndTime.trim()) nextErrors.workEndTime = 'กรุณาระบุเวลาออกงาน';
+    else if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(workEndTime.trim()))
+      nextErrors.workEndTime = 'กรุณากรอกเวลาแบบ 24 ชั่วโมง เช่น 16:30';
 
     for (let i = 0; i < memberCount; i++) {
       if (!memberNames[i]?.trim()) {
-        nextErrors[`sig_${i}`] = `กรุณาระบุชื่อ-นามสกุลของสมาชิกคนที่ ${i + 1}`;
+        nextErrors[`sig_${i}`] = `กรุณากรอกชื่อ–นามสกุลของช่างคนที่ ${i + 1}`;
       } else if (!memberSignatures[i]) {
-        nextErrors[`sig_${i}`] = `กรุณาลงลายมือชื่อดิจิทัลสำหรับ ${memberNames[i]}`;
+        nextErrors[`sig_${i}`] = `กรุณาวาดลายเซ็นหรืออัปโหลดรูปลายเซ็นของ ${memberNames[i]}`;
       }
     }
 
@@ -246,43 +259,103 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
     }
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFeedback(null);
-    if (!validateEntry()) return;
-    // แสดงตัวอย่างเอกสารขนาด A4 (Paper-Style Document Preview) ก่อนยืนยันการบันทึกข้อมูล
-    setPreviewDraftWorkRecord(buildDraftWorkTimeRecord());
+    if (!validateEntry()) {
+      toast.error('กรุณากรอกวันที่ เวลาเริ่ม-เลิกงาน และลงลายมือชื่อให้ครบถ้วน');
+      return;
+    }
+    const draft = buildDraftWorkTimeRecord();
+    await executeSaveWorkRecord(draft, false);
   };
 
-  const handleConfirmSave = async () => {
-    if (isSubmitting || !previewDraftWorkRecord) return;
+  const handlePrintPreview = () => {
+    setFeedback(null);
+    if (!validateEntry()) {
+      toast.error('กรุณากรอกข้อมูลเวลาปฏิบัติงานให้ครบถ้วนก่อนดูตัวอย่างการพิมพ์');
+      return;
+    }
+    const draft = buildDraftWorkTimeRecord();
+    setPrintWorkPayload({
+      type: 'work-time',
+      groupConfig,
+      pendingRecord: draft,
+      allRecordsWithPending: editingRecord
+        ? records.map((r) => (r.RecordID === draft.RecordID ? draft : r))
+        : [...records, draft],
+      memberNames,
+    });
+    setTimeout(() => {
+      window.print();
+    }, 60);
+  };
+
+  const executeSaveWorkRecord = async (
+    payload: AnyWorkTimeRecord,
+    shouldPrintImmediately: boolean
+  ) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     setFeedback(null);
 
-    const payload = previewDraftWorkRecord;
     const sequenceNo = payload.SequenceNo;
 
     try {
       const res = await onSaveWorkRecord(sheetKey, payload, Boolean(editingRecord));
-      setPreviewDraftWorkRecord(null);
       if (!res.success) {
+        const errorMsg =
+          res.error || 'ไม่สามารถบันทึกเวลาปฏิบัติงานได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง';
         setFeedback({
           type: 'error',
-          message: res.error || 'ไม่สามารถบันทึกข้อมูลเวลาปฏิบัติงานได้',
+          message: errorMsg,
         });
+        toast.error(errorMsg);
         return;
       }
 
+      const successMessage = res.syncedToCloud
+        ? `บันทึกเวลาปฏิบัติงานลำดับที่ #${sequenceNo} (${dayTechnicianLabel}) เข้าระบบออนไลน์เรียบร้อยแล้ว`
+        : `บันทึกเวลาปฏิบัติงานลำดับที่ #${sequenceNo} (${dayTechnicianLabel}) ไว้ในเครื่องเรียบร้อยแล้ว`;
+
+      setPrintWorkPayload({
+        type: 'work-time',
+        groupConfig,
+        pendingRecord: payload,
+        allRecordsWithPending: records.some((r) => r.RecordID === payload.RecordID)
+          ? records
+          : [...records, payload],
+        memberNames,
+      });
       setFeedback({
         type: 'success',
-        message: res.syncedToCloud
-          ? `บันทึกรายการลำดับที่ #${sequenceNo} ลงในแผ่นงาน Google Sheets "${worksheetName}" สำเร็จแล้ว`
-          : `บันทึกรายการลำดับที่ #${sequenceNo} ลงในระบบสำรองสำหรับแผ่นงาน "${worksheetName}" เรียบร้อยแล้ว`,
+        message: successMessage,
       });
+
+      // แจ้งเตือน Tactile & Visual Feedback ทั้งบนปุ่ม และ Toast Notification ทันที
+      setIsSavedSuccess(true);
+      setTimeout(() => setIsSavedSuccess(false), 3000);
+
+      toast.success(
+        `บันทึกเวลาปฏิบัติงานลำดับที่ #${sequenceNo} (${dayTechnicianLabel}) เรียบร้อยแล้ว`,
+        {
+          title: editingRecord ? 'แก้ไขเวลาปฏิบัติงานสำเร็จ' : 'บันทึกเวลาปฏิบัติงานสำเร็จ',
+          action: {
+            label: 'พิมพ์ใบลงเวลา (A4)',
+            onClick: handlePrintA4,
+          },
+        }
+      );
 
       setEditingRecord(null);
       setRemarks('');
       setMemberSignatures(Array(memberCount).fill(''));
+
+      if (shouldPrintImmediately) {
+        setTimeout(() => {
+          window.print();
+        }, 100);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -293,12 +366,16 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
     setIsSubmitting(true);
     try {
       const res = await onDeleteWorkRecord(sheetKey, recordToDelete.RecordID);
+      const deletedSeq = recordToDelete.SequenceNo;
       setRecordToDelete(null);
       if (res.success) {
         setFeedback({
           type: 'success',
           message: `ลบรายการและปรับปรุงลำดับที่ (No.) ใหม่ในแผ่นงาน "${worksheetName}" เรียบร้อยแล้ว`,
         });
+        toast.success(`ลบรายการลำดับที่ #${deletedSeq} ออกจากระบบเรียบร้อยแล้ว`);
+      } else {
+        toast.error('ไม่สามารถลบรายการได้ กรุณาลองใหม่อีกครั้ง');
       }
     } finally {
       setIsSubmitting(false);
@@ -355,11 +432,21 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       }
     });
 
-    exportToExcelCSV(`Work_Time_Group_${groupNumber}`, headers, rows);
+    exportToExcelCSV(`Work_Time_Day_${groupNumber}`, headers, rows);
+    toast.info(`ส่งออกไฟล์ Excel/CSV แผ่นงาน "${worksheetName}" เรียบร้อยแล้ว`);
   };
 
   const handlePrintA4 = () => {
-    window.print();
+    setPrintWorkPayload({
+      type: 'work-time',
+      groupConfig,
+      pendingRecord: null,
+      allRecordsWithPending: records,
+      memberNames,
+    });
+    setTimeout(() => {
+      window.print();
+    }, 60);
   };
 
   const nextSequenceNumber = editingRecord ? editingRecord.SequenceNo : String(records.length + 1);
@@ -371,15 +458,15 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         <button
           type="button"
           onClick={onBackToDashboard}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+          className="min-h-[40px] px-2.5 py-1.5 -ml-2.5 rounded-xl inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
         >
-          <ArrowLeft className="w-4 h-4" />
-          กลับสู่หน้าแดชบอร์ดหลัก
+          <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
+          <span>กลับหน้าหลัก</span>
         </button>
 
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={groupConfig.badgeColor} icon={<Users className="w-3.5 h-3.5" />}>
-            กลุ่มที่ {groupNumber} (สมาชิก {memberCount} คน)
+            {dayTechnicianLabel} ({memberCount} คน)
           </Badge>
           <Badge variant="emerald" icon={<FileSpreadsheet className="w-3.5 h-3.5" />}>
             แผ่นงาน: {worksheetName}
@@ -387,22 +474,42 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         </div>
       </div>
 
-      {/* แจ้งเตือนผลการบันทึก */}
+      {/* แจ้งเตือนผลการบันทึก พร้อมปุ่มดูและพิมพ์ใบลงเวลาขนาด A4 */}
       {feedback && (
         <div
           role="alert"
-          className={`rounded-2xl p-4 border flex items-center gap-3 text-sm font-medium no-print ${
+          className={`rounded-2xl p-4 border flex flex-wrap items-center justify-between gap-3 no-print ${
             feedback.type === 'success'
               ? 'bg-emerald-50 border-emerald-300 text-emerald-900 dark:bg-emerald-950/50 dark:border-emerald-800 dark:text-emerald-200'
               : 'bg-red-50 border-red-300 text-red-900 dark:bg-red-950/50 dark:border-red-800 dark:text-red-200'
           }`}
         >
-          {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+          <div className="flex items-center gap-3 text-sm font-medium">
+            {feedback.type === 'success' ? (
+              <CheckCircle2
+                className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0"
+                aria-hidden="true"
+              />
+            ) : (
+              <AlertCircle
+                className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0"
+                aria-hidden="true"
+              />
+            )}
+            <span>{feedback.message}</span>
+          </div>
+
+          {feedback.type === 'success' && (
+            <Button
+              type="button"
+              variant="success"
+              size="sm"
+              icon={<Printer className="w-3.5 h-3.5" />}
+              onClick={handlePrintA4}
+            >
+              พิมพ์ใบลงเวลา (A4)
+            </Button>
           )}
-          <span>{feedback.message}</span>
         </div>
       )}
 
@@ -439,16 +546,16 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
 
           <div className="p-6 sm:p-8 space-y-6">
             {/* 1. ลำดับที่, 2. วันที่, 3. เวลาเริ่มงาน, 4. เวลาเลิกงาน */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <InputField
-                label="1. ลำดับที่ (No. อัตโนมัติ)"
+                label="1. ลำดับที่ (รันอัตโนมัติ)"
                 readOnly
                 value={nextSequenceNumber}
                 className="font-mono font-bold text-blue-600 dark:text-blue-400 tabular-nums-thai"
               />
 
               <InputField
-                label="2. วันที่ปฏิบัติงาน"
+                label="2. วันที่มาปฏิบัติงาน"
                 type="date"
                 requiredMark
                 value={date}
@@ -456,48 +563,48 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                 error={errors.date}
               />
 
-              <InputField
-                label="3. เวลาเริ่มปฏิบัติงาน"
-                type="time"
+              <TimeField24
+                label="3. เวลาเข้างาน"
                 requiredMark
                 value={workStartTime}
-                onChange={(e) => setWorkStartTime(e.target.value)}
+                onChange={setWorkStartTime}
+                onSetCurrentTime={() => setWorkStartTime(getCurrentTime24())}
                 error={errors.workStartTime}
-                className="font-mono tabular-nums-thai"
               />
 
-              <InputField
-                label="4. เวลาสิ้นสุดปฏิบัติงาน"
-                type="time"
+              <TimeField24
+                label="4. เวลาออกงาน"
                 requiredMark
                 value={workEndTime}
-                onChange={(e) => setWorkEndTime(e.target.value)}
+                onChange={setWorkEndTime}
+                onSetCurrentTime={() => setWorkEndTime(getCurrentTime24())}
                 error={errors.workEndTime}
-                className="font-mono tabular-nums-thai"
               />
             </div>
 
-            {/* 5. ลายมือชื่อดิจิทัลของสมาชิกในกลุ่ม (2 คนสำหรับกลุ่ม 1, 3 คนสำหรับกลุ่ม 2 และ 3) */}
-            <div className="space-y-3">
+            {/* 5. ลายมือชื่อดิจิทัลของสมาชิกในแต่ละวัน */}
+            <fieldset className="space-y-3 border-0 p-0 m-0">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="block text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                  5. ลายมือชื่อดิจิทัลของสมาชิกกลุ่มที่ {groupNumber} (ครบทั้ง {memberCount} คน){' '}
-                  <span className="text-red-500">*</span>
-                </label>
+                <legend className="block text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                  5. ลงลายมือชื่อผู้ปฏิบัติงาน ({dayTechnicianLabel} ครบทั้ง {memberCount} คน){' '}
+                  <span className="text-red-500" aria-hidden="true">
+                    *
+                  </span>
+                </legend>
                 <span className="text-xs text-slate-500 dark:text-slate-400">
-                  สามารถวาดลายเซ็นบนหน้าจอ หรืออัปโหลดไฟล์รูปภาพลายมือชื่อได้
+                  ใช้นิ้ว เมาส์ หรือปากกาวาดลายเซ็นบนหน้าจอ หรืออัปโหลดรูปลายเซ็นได้
                 </span>
               </div>
 
               <div
                 className={`grid grid-cols-1 ${
-                  memberCount === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'
+                  memberCount === 2 ? 'md:grid-cols-2' : 'lg:grid-cols-3'
                 } gap-4`}
               >
                 {Array.from({ length: memberCount }).map((_, idx) => (
                   <SignaturePadField
                     key={`${sheetKey}_sig_${idx}`}
-                    label={`กลุ่มที่ ${groupNumber} • สมาชิกคนที่ ${idx + 1}`}
+                    label={`${dayTechnicianLabel} • คนที่ ${idx + 1}`}
                     memberName={memberNames[idx] || ''}
                     onMemberNameChange={(val) => handleMemberNameChange(idx, val)}
                     value={memberSignatures[idx] || ''}
@@ -506,28 +613,28 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                   />
                 ))}
               </div>
-            </div>
+            </fieldset>
 
             {/* 6. หมายเหตุ */}
             <InputField
-              label="6. หมายเหตุ / รายละเอียดงานที่ปฏิบัติในกะนี้ (Remarks)"
-              optionalText="ไม่บังคับ"
+              label="6. หมายเหตุ / งานที่ดูแลในวันนี้"
+              optionalText="ถ้ามี"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              placeholder="เช่น ดูแลห้องปฏิบัติการคอมพิวเตอร์, ตรวจสอบระบบเครือข่าย, ให้บริการประจำจุด Helpdesk..."
+              placeholder="เช่น ประจำจุดรับซ่อมคอมพิวเตอร์, ลงโปรแกรมห้องปฏิบัติการ, ตรวจเช็กระบบเครือข่าย..."
             />
 
-            {/* ปุ่มบันทึกข้อมูล */}
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            {/* ปุ่มบันทึกข้อมูล (รูปแบบเดียวกับฟอร์มขอรับบริการ IT Support) */}
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="text-xs text-slate-500 dark:text-slate-400">
-                รวมระยะเวลาปฏิบัติงาน:{' '}
+                รวมเวลาปฏิบัติงาน:{' '}
                 <strong className="text-slate-800 dark:text-slate-200">
                   {calculateDurationHours(workStartTime, workEndTime)}
                 </strong>{' '}
-                • บันทึกลงแผ่นงาน <strong className="font-mono">{worksheetName}</strong>
+                • แผ่นงาน <strong className="font-mono">{worksheetName}</strong>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 {editingRecord && (
                   <Button
                     type="button"
@@ -537,16 +644,31 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                       setRemarks('');
                       setMemberSignatures(Array(memberCount).fill(''));
                     }}
+                    className="w-full sm:w-auto"
                   >
                     ยกเลิกการแก้ไข
                   </Button>
                 )}
 
                 <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  disabled={isSubmitting}
+                  icon={<Printer className="w-4 h-4" />}
+                  onClick={handlePrintPreview}
+                  className="w-full sm:w-auto"
+                >
+                  ตัวอย่างการพิมพ์ (A4)
+                </Button>
+
+                <Button
                   type="submit"
                   variant="primary"
                   size="lg"
                   isLoading={isSubmitting}
+                  isSuccess={isSavedSuccess}
+                  successText="บันทึกสำเร็จเรียบร้อย"
                   icon={
                     editingRecord ? (
                       <Save className="w-4 h-4" />
@@ -554,10 +676,11 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                       <PlusCircle className="w-4 h-4" />
                     )
                   }
+                  className="w-full sm:w-auto"
                 >
                   {editingRecord
-                    ? `บันทึกการแก้ไขแถวที่ #${editingRecord.SequenceNo}`
-                    : 'เพิ่มรายการบันทึกเวลาปฏิบัติงาน'}
+                    ? `บันทึกการแก้ไขลำดับที่ #${editingRecord.SequenceNo}`
+                    : 'บันทึกเวลาปฏิบัติงาน'}
                 </Button>
               </div>
             </div>
@@ -573,7 +696,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-200 dark:border-slate-800 no-print">
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              ตารางบันทึกเวลาปฏิบัติงาน — กลุ่มที่ {groupNumber} ({records.length} รายการ)
+              ตารางบันทึกเวลาปฏิบัติงาน — {dayTechnicianLabel} ({records.length} รายการ)
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               จัดวางในรูปแบบใบลงเวลาปฏิบัติงานมาตรฐาน A4 พร้อมแสดงลายมือชื่อดิจิทัลของสมาชิกทั้ง{' '}
@@ -616,7 +739,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
 
             <Button
               type="button"
-              variant="primary"
+              variant="secondary"
               size="sm"
               icon={<Printer className="w-3.5 h-3.5" />}
               onClick={handlePrintA4}
@@ -626,14 +749,41 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
           </div>
         </div>
 
-        {/* ส่วนหัวเอกสารสำหรับพิมพ์ลงกระดาษ A4 */}
+        {/* ส่วนหัวเอกสารสำหรับพิมพ์ลงกระดาษ A4 (ตามต้นฉบับใบลงเวลาการทำงาน) */}
         <div className="text-center border-b-2 border-slate-900 dark:border-slate-700 pb-4 mb-4">
-          <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white print:text-black">
-            แบบบันทึกเวลาปฏิบัติงานทีม IT Support — กลุ่มที่ {groupNumber}
+          <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white print:text-black">
+            ใบลงเวลาการทำงาน
           </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-400 print:text-slate-700 mt-1">
-            แผ่นงาน Google Sheets: <strong className="font-mono">{worksheetName}</strong> •
-            จำนวนสมาชิกในกลุ่ม: {memberCount} คน
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 print:text-black">
+            <span>เวลาทำงาน {groupConfig.workingHoursLabel || '09:00 - 16:00'}</span>
+            <span className="text-slate-400">|</span>
+            <span>
+              เดือน{' '}
+              <span className="inline-block min-w-[100px] border-b border-slate-600 dark:border-slate-400 print:border-black px-2">
+                {new Date(date || Date.now()).toLocaleDateString('th-TH', { month: 'long' })}
+              </span>
+            </span>
+            <span>
+              พ.ศ.{' '}
+              <span className="inline-block min-w-[70px] border-b border-slate-600 dark:border-slate-400 print:border-black px-2 tabular-nums-thai">
+                {new Date(date || Date.now()).getFullYear() + 543}
+              </span>
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white print:text-black mt-2">
+            {groupConfig.groupNumber === 1
+              ? 'ช่างวันจันทร์'
+              : groupConfig.groupNumber === 2
+              ? 'ช่างวันอังคาร'
+              : 'ช่างวันศุกร์'}{' '}
+            :{' '}
+            {memberCount === 2
+              ? `${memberNames[0] || groupConfig.defaultMembers[0]} และ ${
+                  memberNames[1] || groupConfig.defaultMembers[1]
+                }`
+              : `${memberNames[0] || groupConfig.defaultMembers[0]} กับ ${
+                  memberNames[1] || groupConfig.defaultMembers[1]
+                } และ ${memberNames[2] || groupConfig.defaultMembers[2]}`}
           </p>
         </div>
 
@@ -643,6 +793,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
             <thead>
               <tr className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
                 <th
+                  scope="col"
                   rowSpan={2}
                   className="border border-slate-300 dark:border-slate-700 px-3 py-2.5 text-center font-bold w-14"
                 >
@@ -650,6 +801,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                   <div className="text-xs font-normal text-slate-500">(No.)</div>
                 </th>
                 <th
+                  scope="col"
                   rowSpan={2}
                   className="border border-slate-300 dark:border-slate-700 px-3 py-2.5 text-left font-bold"
                 >
@@ -657,6 +809,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                   <div className="text-xs font-normal text-slate-500">(Date)</div>
                 </th>
                 <th
+                  scope="col"
                   rowSpan={2}
                   className="border border-slate-300 dark:border-slate-700 px-3 py-2.5 text-center font-bold"
                 >
@@ -664,6 +817,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                   <div className="text-xs font-normal text-slate-500">(Start Time)</div>
                 </th>
                 <th
+                  scope="col"
                   rowSpan={2}
                   className="border border-slate-300 dark:border-slate-700 px-3 py-2.5 text-center font-bold"
                 >
@@ -671,12 +825,14 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                   <div className="text-xs font-normal text-slate-500">(End Time)</div>
                 </th>
                 <th
+                  scope="colgroup"
                   colSpan={memberCount}
                   className="border border-slate-300 dark:border-slate-700 px-3 py-2 text-center font-bold bg-blue-50/70 dark:bg-blue-950/40"
                 >
-                  ลายมือชื่อผู้ปฏิบัติงาน (สมาชิกกลุ่มที่ {groupNumber} จำนวน {memberCount} คน)
+                  ลายมือชื่อผู้ปฏิบัติงาน ({dayTechnicianLabel} จำนวน {memberCount} คน)
                 </th>
                 <th
+                  scope="col"
                   rowSpan={2}
                   className="border border-slate-300 dark:border-slate-700 px-3 py-2.5 text-left font-bold"
                 >
@@ -684,6 +840,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                   <div className="text-xs font-normal text-slate-500">(Remarks)</div>
                 </th>
                 <th
+                  scope="col"
                   rowSpan={2}
                   className="border border-slate-300 dark:border-slate-700 px-3 py-2.5 text-center font-bold no-print w-24"
                 >
@@ -694,6 +851,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                 {Array.from({ length: memberCount }).map((_, idx) => (
                   <th
                     key={idx}
+                    scope="col"
                     className="border border-slate-300 dark:border-slate-700 px-2.5 py-1.5 text-center font-semibold text-xs"
                   >
                     {memberNames[idx] || `สมาชิกคนที่ ${idx + 1}`}
@@ -708,7 +866,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                     colSpan={6 + memberCount}
                     className="border border-slate-300 dark:border-slate-700 px-6 py-12 text-center text-slate-500 dark:text-slate-400"
                   >
-                    ยังไม่มีข้อมูลบันทึกเวลาปฏิบัติงานของกลุ่มที่ {groupNumber}{' '}
+                    ยังไม่มีข้อมูลบันทึกเวลาปฏิบัติงานของ{dayTechnicianLabel}{' '}
                     กรุณากรอกข้อมูลและลงลายมือชื่อในแบบฟอร์มด้านบนเพื่อเพิ่มรายการแรก
                   </td>
                 </tr>
@@ -739,10 +897,10 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                       <td className="border border-slate-300 dark:border-slate-700 px-3 py-2 whitespace-nowrap font-medium">
                         {formatDisplayDate(rec.Date)}
                       </td>
-                      <td className="border border-slate-300 dark:border-slate-700 px-3 py-2 text-center font-mono tabular-nums-thai">
+                      <td className="border border-slate-300 dark:border-slate-700 px-3 py-2 text-center font-mono tabular-nums-thai whitespace-nowrap">
                         {formatDisplayTime(rec.WorkStartTime)}
                       </td>
-                      <td className="border border-slate-300 dark:border-slate-700 px-3 py-2 text-center font-mono tabular-nums-thai">
+                      <td className="border border-slate-300 dark:border-slate-700 px-3 py-2 text-center font-mono tabular-nums-thai whitespace-nowrap">
                         {formatDisplayTime(rec.WorkEndTime)}
                       </td>
 
@@ -759,7 +917,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                                 alt={`ลายมือชื่อ ${item.name || `สมาชิกคนที่ ${sIdx + 1}`}`}
                                 className="h-10 max-w-[110px] object-contain bg-white rounded px-1"
                               />
-                              <span className="text-xs text-slate-500 dark:text-slate-400 print:text-black mt-0.5">
+                              <span className="text-xs text-slate-600 dark:text-slate-400 print:text-black mt-0.5">
                                 {item.name}
                               </span>
                             </div>
@@ -775,24 +933,24 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
 
                       <td className="border border-slate-300 dark:border-slate-700 px-2 py-2 text-center no-print">
                         <div className="flex items-center justify-center gap-1">
-                          <button
-                            type="button"
+                          <IconButton
+                            label={`ดูรายละเอียดรายการลำดับที่ ${rec.SequenceNo || index + 1}`}
+                            variant="neutral"
+                            onClick={() => setDrawerWorkRecord(rec)}
+                            icon={<Eye className="w-4 h-4" />}
+                          />
+                          <IconButton
+                            label={`แก้ไขรายการลำดับที่ ${rec.SequenceNo || index + 1}`}
+                            variant="primary"
                             onClick={() => startEditingRow(rec)}
-                            title="แก้ไขรายการนี้"
-                            aria-label={`แก้ไขรายการลำดับที่ ${rec.SequenceNo || index + 1}`}
-                            className="p-2 min-w-[38px] min-h-[38px] inline-flex items-center justify-center rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/60 transition"
-                          >
-                            <Edit3 className="w-4 h-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
+                            icon={<Edit3 className="w-4 h-4" />}
+                          />
+                          <IconButton
+                            label={`ลบรายการลำดับที่ ${rec.SequenceNo || index + 1}`}
+                            variant="danger"
                             onClick={() => requestDeleteRow(rec)}
-                            title="ลบรายการนี้"
-                            aria-label={`ลบรายการลำดับที่ ${rec.SequenceNo || index + 1}`}
-                            className="p-2 min-w-[38px] min-h-[38px] inline-flex items-center justify-center rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/60 transition"
-                          >
-                            <Trash2 className="w-4 h-4" aria-hidden="true" />
-                          </button>
+                            icon={<Trash2 className="w-4 h-4" />}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -804,45 +962,159 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         </div>
 
         {/* ส่วนลงนามรับรองสำหรับเอกสารฉบับพิมพ์ A4 */}
-        <div className="mt-8 pt-4 grid grid-cols-2 gap-8 text-xs text-slate-600 dark:text-slate-400 print:text-black">
+        <div className="mt-8 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8 text-xs text-slate-600 dark:text-slate-400 print:grid-cols-2 print:text-black">
           <div>
-            <p className="font-semibold">ลายมือชื่อหัวหน้ากลุ่มที่ {groupNumber} (ผู้ตรวจสอบ):</p>
+            <p className="font-semibold">ลายมือชื่อผู้ปฏิบัติงาน ({dayTechnicianLabel} / ผู้ตรวจสอบ):</p>
             <div className="h-10 border-b border-dashed border-slate-400 max-w-xs mt-2" />
           </div>
-          <div className="text-right">
+          <div className="sm:text-right print:text-right">
             <p className="font-semibold">ลายมือชื่ออาจารย์ที่ปรึกษา / หัวหน้างาน IT Support:</p>
-            <div className="h-10 border-b border-dashed border-slate-400 max-w-xs ml-auto mt-2" />
+            <div className="h-10 border-b border-dashed border-slate-400 max-w-xs sm:ml-auto print:ml-auto mt-2" />
           </div>
         </div>
       </Card>
 
-      {/* หน้าต่างแสดงตัวอย่างเอกสารกระดาษ A4 ก่อนยืนยันการบันทึกเวลาปฏิบัติงาน */}
-      <PaperDocumentPreviewModal
-        isOpen={Boolean(previewDraftWorkRecord)}
-        mode="pre-submit"
-        payload={
-          previewDraftWorkRecord
-            ? {
-                type: 'work-time',
-                groupConfig,
-                pendingRecord: previewDraftWorkRecord,
-                allRecordsWithPending: editingRecord
-                  ? records.map((r) =>
-                      r.RecordID === previewDraftWorkRecord.RecordID
-                        ? previewDraftWorkRecord
-                        : r
-                    )
-                  : [...records, previewDraftWorkRecord],
-                memberNames,
-                isEdit: Boolean(editingRecord),
-              }
-            : null
+      {/* แถบด้านข้าง (Drawer) แสดงรายละเอียดบันทึกเวลาและลายมือชื่อดิจิทัลรายแถว */}
+      <Drawer
+        isOpen={Boolean(drawerWorkRecord)}
+        onClose={() => setDrawerWorkRecord(null)}
+        title={
+          drawerWorkRecord
+            ? `บันทึกเวลาลำดับที่ #${drawerWorkRecord.SequenceNo}`
+            : 'รายละเอียดบันทึกเวลาปฏิบัติงาน'
         }
-        isSubmitting={isSubmitting}
-        onConfirmAndSubmit={handleConfirmSave}
-        onEditInformation={() => setPreviewDraftWorkRecord(null)}
-        onCancel={() => setPreviewDraftWorkRecord(null)}
-      />
+        subtitle={groupConfig.shiftLabel}
+        icon={<Clock className="w-5 h-5" />}
+        size="md"
+        badge={
+          <Badge variant={groupConfig.badgeColor}>
+            {dayTechnicianLabel}
+          </Badge>
+        }
+        footer={
+          drawerWorkRecord && (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                icon={<Edit3 className="w-4 h-4" />}
+                onClick={() => {
+                  const target = drawerWorkRecord;
+                  setDrawerWorkRecord(null);
+                  startEditingRow(target);
+                }}
+              >
+                แก้ไขรายการนี้
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                icon={<Printer className="w-4 h-4" />}
+                onClick={() => {
+                  setDrawerWorkRecord(null);
+                  handlePrintA4();
+                }}
+              >
+                เปิดหน้าพิมพ์ใบลงเวลา (A4)
+              </Button>
+            </div>
+          )
+        }
+      >
+        {drawerWorkRecord && (
+          <div className="space-y-5 text-xs sm:text-sm">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800 overflow-hidden">
+              <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                <span>ข้อมูลวันและเวลาปฏิบัติงาน</span>
+              </div>
+              <div className="p-4 grid grid-cols-2 gap-3.5 bg-white dark:bg-slate-900">
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">ลำดับที่ (Sequence No.)</div>
+                  <div className="font-mono font-bold text-blue-600 dark:text-blue-400 mt-0.5 tabular-nums-thai">
+                    #{drawerWorkRecord.SequenceNo}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">วันที่ปฏิบัติงาน</div>
+                  <div className="font-semibold text-slate-900 dark:text-white mt-0.5">
+                    {formatDisplayDate(drawerWorkRecord.Date)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">เวลาเข้างาน – ออกงาน</div>
+                  <div className="font-mono font-semibold text-slate-900 dark:text-white mt-0.5 tabular-nums-thai">
+                    {formatDisplayTime(drawerWorkRecord.WorkStartTime)} –{' '}
+                    {formatDisplayTime(drawerWorkRecord.WorkEndTime)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">รวมระยะเวลา</div>
+                  <div className="font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    {calculateDurationHours(
+                      drawerWorkRecord.WorkStartTime,
+                      drawerWorkRecord.WorkEndTime
+                    )}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">หมายเหตุการปฏิบัติงาน</div>
+                  <div className="font-medium text-slate-900 dark:text-white mt-0.5">
+                    {drawerWorkRecord.Remarks || 'ไม่มีหมายเหตุเพิ่มเติม'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:divide-slate-800 overflow-hidden">
+              <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                <span>ลายมือชื่อดิจิทัลของสมาชิกประจำวัน ({memberCount} คน)</span>
+              </div>
+              <div className="p-4 space-y-3 bg-white dark:bg-slate-900">
+                {Array.from({ length: memberCount }).map((_, mIdx) => {
+                  const anyRec = drawerWorkRecord as unknown as Record<string, string>;
+                  const name = anyRec[`Member${mIdx + 1}Name`] || `สมาชิกคนที่ ${mIdx + 1}`;
+                  const sig = anyRec[`Member${mIdx + 1}Signature`];
+                  return (
+                    <div
+                      key={mIdx}
+                      className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          สมาชิกคนที่ {mIdx + 1}
+                        </div>
+                        <div className="font-bold text-slate-900 dark:text-white mt-0.5 break-words">
+                          {name}
+                        </div>
+                      </div>
+                      {sig ? (
+                        <div className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm self-start sm:self-auto shrink-0">
+                          <img
+                            src={sig}
+                            alt={`ลายมือชื่อ ${name}`}
+                            className="h-12 max-w-[140px] object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <Badge variant="amber" className="self-start sm:self-auto shrink-0">
+                          ยังไม่ลงลายมือชื่อ
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </Drawer>
+
+      {/* พอร์ทัลเอกสาร A4 ซ่อนบนหน้าจอแสดงผล 100% แต่จะแสดงเฉพาะขณะเรียก window.print() เท่านั้น */}
+      <PrintDocumentPortal payload={printWorkPayload} />
 
       {/* หน้าต่างยืนยันการลบรายการ */}
       <ConfirmDialog

@@ -1,0 +1,4 @@
+[1119/004104.217:WARNING:net\dns\dns_config_service_win.cc:607] Failed to read DnsConfig.
+[1119/004104.292:WARNING:net\extras\sqlite\sqlite_persistent_store_backend_base.cc:182] Failed to post task from operator()@net\extras\sqlite\sqlite_persistent_shared_dictionary_store.cc:265 to client_task_runner_.
+[1119/004104.348:ERROR:ui\gl\angle_platform_impl.cc:34] vulkan_icd.cpp:157 (angle::vk::ScopedVkLoaderEnvironment::ScopedVkLoaderEnvironment): Error setting CWD for Vulkan layers init.
+[1119/004104.760:WARNING:ui\gl\angle_platform_impl.cc:39] vulkan_icd.cpp:391 (angle::vk::ChoosePhysicalDevice): Preferred device ICD not found. Using default physicalDevice instead.

@@ -2,19 +2,29 @@
  * ฟังก์ชันจัดการรูปแบบวันที่ เวลา เลขที่ใบรับบริการ และการส่งออกไฟล์ CSV/Excel (รองรับภาษาไทย)
  */
 
-export function getCurrentDateISO(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+/** ดึงส่วนประกอบวันเวลาปัจจุบันตามเวลาประเทศไทย (Asia/Bangkok) ไม่ขึ้นกับเขตเวลาของเครื่อง */
+function getBangkokParts(): Record<string, string> {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+  return Object.fromEntries(parts.map((p) => [p.type, p.value]));
 }
 
+export function getCurrentDateISO(): string {
+  const p = getBangkokParts();
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+/** เวลาปัจจุบันแบบ 24 ชม. "HH:mm" (Asia/Bangkok) */
 export function getCurrentTime24(): string {
-  const now = new Date();
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
+  const p = getBangkokParts();
+  return `${p.hour}:${p.minute}`;
 }
 
 export function generateUniqueReceiptNumber(existingReceipts: string[] = []): string {
@@ -63,15 +73,73 @@ export function formatDisplayDate(dateStr: string): string {
   return cleaned;
 }
 
+/**
+ * แสดงผลเวลาในรูปแบบ 24 ชั่วโมง (24-Hour Clock HH:mm น.) ตามมาตรฐานไทย (Asia/Bangkok)
+ * ป้องกันการแสดงผลแบบ AM/PM อย่างสิ้นเชิง
+ */
 export function formatDisplayTime(timeStr: string): string {
   if (!timeStr) return '—';
-  if (timeStr.includes('T')) {
-    const d = new Date(timeStr);
+  const trimmed = timeStr.trim();
+
+  // กรณีเป็น ISO string หรือมีวันที่ติดมาด้วย เช่น "2026-11-18T19:26:00.000Z"
+  if (trimmed.includes('T')) {
+    const d = new Date(trimmed);
     if (!isNaN(d.getTime())) {
-      return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' น.';
+      return (
+        d.toLocaleTimeString('th-TH', {
+          timeZone: 'Asia/Bangkok',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }) + ' น.'
+      );
     }
   }
-  return `${timeStr.slice(0, 5)} น.`;
+
+  // กรณีเป็นรูปแบบข้อความเวลา เช่น "19:26", "19:26:00", หรือมี AM/PM หลงมา
+  const match12 = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
+  if (match12) {
+    let hour = parseInt(match12[1], 10);
+    const minute = match12[2];
+    const meridian = match12[3].toUpperCase();
+    if (meridian === 'PM' && hour < 12) hour += 12;
+    if (meridian === 'AM' && hour === 12) hour = 0;
+    return `${String(hour).padStart(2, '0')}:${minute} น.`;
+  }
+
+  // รูปแบบ "HH:mm" ปกติ
+  const parts = trimmed.split(':');
+  if (parts.length >= 2) {
+    const h = parts[0].padStart(2, '0').slice(-2);
+    const m = parts[1].slice(0, 2).padStart(2, '0');
+    return `${h}:${m} น.`;
+  }
+
+  return `${trimmed} น.`;
+}
+
+/**
+ * แปลงสตริงเวลาใดๆ ให้เป็นรูปแบบ HH:mm มาตรฐาน (24 ชม.)
+ */
+export function formatTimeTo24Hours(timeStr: string): string {
+  if (!timeStr) return '';
+  const trimmed = timeStr.trim();
+  const match12 = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$/i);
+  if (match12) {
+    let hour = parseInt(match12[1], 10);
+    const minute = match12[2];
+    const meridian = match12[3].toUpperCase();
+    if (meridian === 'PM' && hour < 12) hour += 12;
+    if (meridian === 'AM' && hour === 12) hour = 0;
+    return `${String(hour).padStart(2, '0')}:${minute}`;
+  }
+  const parts = trimmed.split(':');
+  if (parts.length >= 2) {
+    const h = parts[0].padStart(2, '0').slice(-2);
+    const m = parts[1].slice(0, 2).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+  return trimmed.slice(0, 5);
 }
 
 export function calculateDurationHours(startTime: string, endTime: string): string {

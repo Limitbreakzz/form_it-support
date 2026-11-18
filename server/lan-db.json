@@ -1,0 +1,74 @@
+{
+  "config": {
+    "gasUrl": "https://script.google.com/macros/s/AKfycbyirBorIrytBOvJbODp2yNEnYdub19BKoqNBlKaITN_GPjcHj5NUFgtbGIbvE1V3gWu/exec",
+    "adminPin": "1234"
+  },
+  "sheets": {
+    "REQUESTS": [
+      {
+        "RecordID": "rec-mwm9p8lk-kw8xarc",
+        "ReceiptNumber": "ITS-20261118-9207",
+        "Date": "2026-11-18T00:00:00",
+        "Time": "1899-12-30T22:19:00",
+        "FullName": "dsa",
+        "PhoneNumber": "31312312",
+        "Department": "",
+        "DeviceType": "Hardware",
+        "DeviceBrandModel": "dsa",
+        "DeviceSerialNumber": "dsa",
+        "ProblemDescription": "dsa",
+        "AdditionalDetails": "0 บาท",
+        "RequestedServices": "[\"ตรวจสอบปัญหาเบื้องต้น\",\"Other\"]",
+        "OtherServiceText": "das",
+        "Status": "Completed",
+        "CreatedAt": "2026-11-18T15:19:54.824Z",
+        "UpdatedAt": "2026-11-18T15:19:58.260Z",
+        "SyncStatus": "synced"
+      },
+      {
+        "RecordID": "1a52a141-6afd-472b-8763-82f137abac17",
+        "ReceiptNumber": "ITS-20261118-5176",
+        "Date": "2026-11-18T00:00:00",
+        "Time": "1899-12-30T22:19:00",
+        "FullName": "dsa",
+        "PhoneNumber": "313131",
+        "Department": "",
+        "DeviceType": "Hardware",
+        "DeviceBrandModel": "sdad",
+        "DeviceSerialNumber": "dsa",
+        "ProblemDescription": "dsad",
+        "AdditionalDetails": "50 บาท",
+        "RequestedServices": "[\"แก้ไขปัญหา Software\"]",
+        "OtherServiceText": "",
+        "Status": "Completed",
+        "CreatedAt": "2026-11-18T15:20:47.331Z",
+        "UpdatedAt": "2026-11-18T15:20:50.743Z",
+        "SyncStatus": "synced"
+      },
+      {
+        "RecordID": "2a5def68-172a-40b4-a875-5d13cbcd6b7d",
+        "ReceiptNumber": "ITS-20261118-2818",
+        "Date": "2026-11-18T00:00:00",
+        "Time": "1899-12-30T23:00:00",
+        "FullName": "dsa",
+        "PhoneNumber": "31312321312",
+        "Department": "asdasd",
+        "DeviceType": "Hardware",
+        "DeviceBrandModel": "ad",
+        "DeviceSerialNumber": "aad",
+        "ProblemDescription": "dsaasdasd",
+        "AdditionalDetails": "150 บาท",
+        "RequestedServices": "[\"ติดตั้ง Windows\"]",
+        "OtherServiceText": "",
+        "Status": "Completed",
+        "CreatedAt": "2026-11-18T16:00:45.568Z",
+        "UpdatedAt": "2026-11-18T16:00:49.896Z",
+        "SyncStatus": "synced"
+      }
+    ],
+    "GROUP_1": [],
+    "GROUP_2": [],
+    "GROUP_3": []
+  },
+  "updatedAt": "2026-11-18T18:20:09.307Z"
+}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { Eraser, PenTool, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface SignaturePadFieldProps {
@@ -22,7 +22,8 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const memberInputId = React.useId();
+  const memberInputId = useId();
+  const errorId = useId();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -155,7 +156,7 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
 
   return (
     <div
-      className={`rounded-2xl border p-4 transition-all ${
+      className={`rounded-2xl border p-4 transition-colors ${
         error
           ? 'border-red-400 bg-red-50/40 dark:border-red-500/70 dark:bg-red-950/20'
           : 'border-slate-200 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-900/60'
@@ -167,9 +168,9 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
             {label}
           </span>
           {value && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              ลงชื่อแล้ว
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>ลงชื่อแล้ว</span>
             </span>
           )}
         </div>
@@ -181,27 +182,29 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
         >
           <button
             type="button"
+            aria-pressed={mode === 'draw'}
             onClick={() => setMode('draw')}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition ${
+            className={`min-h-[34px] inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
               mode === 'draw'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
-            <PenTool className="w-3.5 h-3.5" />
-            วาดลายเซ็น
+            <PenTool className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span>วาดลายเซ็น</span>
           </button>
           <button
             type="button"
+            aria-pressed={mode === 'upload'}
             onClick={() => setMode('upload')}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition ${
+            className={`min-h-[34px] inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
               mode === 'upload'
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
-            <Upload className="w-3.5 h-3.5" />
-            อัปโหลดรูปภาพ
+            <Upload className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span>อัปโหลดรูปภาพ</span>
           </button>
         </div>
       </div>
@@ -210,25 +213,38 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
       <div className="mb-3">
         <label
           htmlFor={memberInputId}
-          className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
+          className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
         >
-          ชื่อ-นามสกุล สมาชิกทีม <span className="text-red-500" aria-hidden="true">*</span>
+          ชื่อ - นามสกุล ผู้ปฏิบัติงาน{' '}
+          <span className="text-red-500 font-bold" aria-hidden="true">
+            *
+          </span>
         </label>
         <input
           id={memberInputId}
           type="text"
           required
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? errorId : undefined}
           value={memberName}
           onChange={(e) => onMemberNameChange(e.target.value)}
-          placeholder={`ระบุชื่อ-นามสกุล (${label})`}
-          className="w-full min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-base sm:text-sm text-slate-900 dark:text-slate-100 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          placeholder={`ระบุชื่อ - นามสกุล (${label})`}
+          className="w-full min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         />
       </div>
 
       {/* พื้นที่ลงลายมือชื่อดิจิทัล */}
       {mode === 'draw' ? (
         <div className="relative">
-          <div className="rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white overflow-hidden">
+          <div className="relative rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white overflow-hidden">
+            {!value && !isDrawing && (
+              <div
+                className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-slate-400 px-4 text-center select-none"
+                aria-hidden="true"
+              >
+                ใช้นิ้ว ปากกาสไตลัส หรือเมาส์วาดลายเซ็นในกรอบนี้
+              </div>
+            )}
             <canvas
               ref={canvasRef}
               width={320}
@@ -240,19 +256,20 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
               onTouchStart={startDrawing}
               onTouchMove={draw}
               onTouchEnd={finishDrawing}
+              onTouchCancel={finishDrawing}
               aria-label={`พื้นที่วาดลายมือชื่อสำหรับ ${memberName || label}`}
-              className="w-full h-[115px] cursor-crosshair touch-none"
+              className="relative z-10 w-full h-[115px] cursor-crosshair touch-none"
             />
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-            <span>ลงลายมือชื่อด้วยเมาส์ ปากกาสไตลัส หรือหน้าจอสัมผัส</span>
+          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span>พื้นหลังขาวมาตรฐานสำหรับการพิมพ์เอกสาร A4</span>
             <button
               type="button"
               onClick={handleClear}
-              className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 font-medium transition"
+              className="min-h-[34px] px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/40 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
             >
-              <Eraser className="w-3.5 h-3.5" />
-              ล้างลายเซ็น
+              <Eraser className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>ล้างลายเซ็น</span>
             </button>
           </div>
         </div>
@@ -274,8 +291,9 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
               ref={fileInputRef}
               type="file"
               accept="image/png,image/jpeg,image/webp"
+              aria-label={`อัปโหลดไฟล์รูปภาพลายมือชื่อสำหรับ ${memberName || label}`}
               onChange={handleImageUpload}
-              className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-blue-300"
+              className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-blue-300 cursor-pointer"
             />
           </div>
           {value && (
@@ -283,10 +301,10 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400 hover:underline font-medium"
+                className="min-h-[34px] px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
               >
-                <Eraser className="w-3.5 h-3.5" />
-                ลบรูปภาพลายเซ็น
+                <Eraser className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span>ลบรูปภาพลายเซ็น</span>
               </button>
             </div>
           )}
@@ -294,8 +312,12 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
       )}
 
       {error && (
-        <p className="mt-2 flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+        <p
+          id={errorId}
+          role="alert"
+          className="mt-2 flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400"
+        >
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
           <span>{error}</span>
         </p>
       )}
