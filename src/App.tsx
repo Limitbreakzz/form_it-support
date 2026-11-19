@@ -53,6 +53,10 @@ export function App() {
 
   const [editingServiceRequest, setEditingServiceRequest] =
     useState<ServiceRequestRecord | null>(null);
+  const [editingWorkTimeRecord, setEditingWorkTimeRecord] = useState<{
+    sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3';
+    record: AnyWorkTimeRecord;
+  } | null>(null);
 
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [authModalState, setAuthModalState] = useState<{
@@ -546,11 +550,20 @@ export function App() {
           <WorkTimeGroupForm
             groupConfig={WORK_TIME_GROUPS.GROUP_1}
             records={sheetsData.GROUP_1}
+            initialEditingRecord={
+              editingWorkTimeRecord?.sheetKey === 'GROUP_1'
+                ? editingWorkTimeRecord.record
+                : null
+            }
+            onCancelEdit={() => setEditingWorkTimeRecord(null)}
             isAuthorized={isAuthorized}
             onRequestAuthorization={handleRequestAuthorization}
             onSaveWorkRecord={handleSaveWorkTimeRecord}
             onDeleteWorkRecord={handleDeleteRecord}
-            onBackToDashboard={() => handleNavigate('dashboard')}
+            onBackToDashboard={() => {
+              setEditingWorkTimeRecord(null);
+              handleNavigate('dashboard');
+            }}
           />
         )}
 
@@ -558,11 +571,20 @@ export function App() {
           <WorkTimeGroupForm
             groupConfig={WORK_TIME_GROUPS.GROUP_2}
             records={sheetsData.GROUP_2}
+            initialEditingRecord={
+              editingWorkTimeRecord?.sheetKey === 'GROUP_2'
+                ? editingWorkTimeRecord.record
+                : null
+            }
+            onCancelEdit={() => setEditingWorkTimeRecord(null)}
             isAuthorized={isAuthorized}
             onRequestAuthorization={handleRequestAuthorization}
             onSaveWorkRecord={handleSaveWorkTimeRecord}
             onDeleteWorkRecord={handleDeleteRecord}
-            onBackToDashboard={() => handleNavigate('dashboard')}
+            onBackToDashboard={() => {
+              setEditingWorkTimeRecord(null);
+              handleNavigate('dashboard');
+            }}
           />
         )}
 
@@ -570,11 +592,20 @@ export function App() {
           <WorkTimeGroupForm
             groupConfig={WORK_TIME_GROUPS.GROUP_3}
             records={sheetsData.GROUP_3}
+            initialEditingRecord={
+              editingWorkTimeRecord?.sheetKey === 'GROUP_3'
+                ? editingWorkTimeRecord.record
+                : null
+            }
+            onCancelEdit={() => setEditingWorkTimeRecord(null)}
             isAuthorized={isAuthorized}
             onRequestAuthorization={handleRequestAuthorization}
             onSaveWorkRecord={handleSaveWorkTimeRecord}
             onDeleteWorkRecord={handleDeleteRecord}
-            onBackToDashboard={() => handleNavigate('dashboard')}
+            onBackToDashboard={() => {
+              setEditingWorkTimeRecord(null);
+              handleNavigate('dashboard');
+            }}
           />
         )}
 
@@ -588,6 +619,16 @@ export function App() {
             onEditServiceRequest={(rec) => {
               setEditingServiceRequest(rec);
               handleNavigate('service-request');
+            }}
+            onEditWorkTimeRecord={(sheetKey, rec) => {
+              setEditingWorkTimeRecord({ sheetKey, record: rec });
+              handleNavigate(
+                sheetKey === 'GROUP_1'
+                  ? 'work-time-group-1'
+                  : sheetKey === 'GROUP_2'
+                  ? 'work-time-group-2'
+                  : 'work-time-group-3'
+              );
             }}
             onDeleteRecord={handleDeleteRecord}
             onNavigate={handleNavigate}

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Calendar,
   Check,
+  Clock,
   Download,
   Edit3,
   Eye,
@@ -14,29 +15,37 @@ import {
   Search,
   Trash2,
   Unlock,
+  Users,
 } from 'lucide-react';
 import {
   AnyWorkTimeRecord,
   getDeviceTypeThaiLabel,
   getServiceThaiLabel,
+  GroupConfig,
   NavigationTab,
   ServiceRequestRecord,
   SheetKey,
+  WORK_TIME_GROUPS,
   WORKSHEET_LABELS_TH,
   WORKSHEET_NAMES,
 } from '../types';
 import { AllSheetsData } from '../services/googleSheetsService';
 import {
+  calculateDurationHours,
   exportToExcelCSV,
   formatDisplayDate,
   formatDisplayPhoneNumber,
   formatDisplayTime,
   parseServicesList,
 } from '../utils/formatters';
-import { PaperDocumentPreviewModal, PrintDocumentPortal } from './PaperDocumentPreviewModal';
+import {
+  PaperDocumentPreviewModal,
+  PaperPreviewPayload,
+  PrintDocumentPortal,
+} from './PaperDocumentPreviewModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { SkeletonLoader } from './SkeletonLoader';
-import { Badge, Button, Card, toast } from './ui/DesignSystem';
+import { Badge, Button, Card, Drawer, toast } from './ui/DesignSystem';
 
 interface SubmissionHistoryViewProps {
   sheetsData: AllSheetsData;
@@ -45,6 +54,10 @@ interface SubmissionHistoryViewProps {
   onRefresh: () => void;
   onRequestAuthorization: (reason: string, callback: () => void) => void;
   onEditServiceRequest: (record: ServiceRequestRecord) => void;
+  onEditWorkTimeRecord?: (
+    sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3',
+    record: AnyWorkTimeRecord
+  ) => void;
   onDeleteRecord: (
     sheetKey: SheetKey,
     recordId: string
@@ -59,6 +72,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
   onRefresh,
   onRequestAuthorization,
   onEditServiceRequest,
+  onEditWorkTimeRecord,
   onDeleteRecord,
   onNavigate,
 }) => {
@@ -67,12 +81,75 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
   const [dateFilter, setDateFilter] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<ServiceRequestRecord | null>(null);
   const [printReceiptRecord, setPrintReceiptRecord] = useState<ServiceRequestRecord | null>(null);
+
+  // States สำหรับรายการบันทึกเวลาทำงาน (Work Time)
+  const [selectedWorkRecord, setSelectedWorkRecord] = useState<{
+    record: AnyWorkTimeRecord;
+    sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3';
+  } | null>(null);
+  const [previewWorkTimeA4, setPreviewWorkTimeA4] = useState<PaperPreviewPayload | null>(null);
+
   const [deleteTarget, setDeleteTarget] = useState<{
     sheetKey: SheetKey;
     recordId: string;
     label: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handlePrintWorkTime = (
+    rec: AnyWorkTimeRecord,
+    sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3'
+  ) => {
+    const groupConfig = WORK_TIME_GROUPS[sheetKey];
+    const memberStorageKey = `it_support_member_names_${sheetKey}_v1`;
+    let memberNames = groupConfig.defaultMembers;
+    try {
+      const saved = localStorage.getItem(memberStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === groupConfig.memberCount) {
+          memberNames = parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    const allRecords = sheetsData[sheetKey] as AnyWorkTimeRecord[];
+    setPreviewWorkTimeA4({
+      type: 'work-time',
+      groupConfig,
+      pendingRecord: rec,
+      allRecordsWithPending: allRecords,
+      memberNames,
+    });
+  };
+
+  const handleEditWorkTime = (
+    rec: AnyWorkTimeRecord,
+    sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3'
+  ) => {
+    const doEdit = () => {
+      if (onEditWorkTimeRecord) {
+        onEditWorkTimeRecord(sheetKey, rec);
+      } else {
+        const tabMap: Record<string, NavigationTab> = {
+          GROUP_1: 'work-time-group-1',
+          GROUP_2: 'work-time-group-2',
+          GROUP_3: 'work-time-group-3',
+        };
+        onNavigate(tabMap[sheetKey]);
+      }
+    };
+
+    if (isAuthorized) {
+      doEdit();
+    } else {
+      onRequestAuthorization(
+        `ต้องการสิทธิ์เพื่อแก้ไขรายการบันทึกเวลาลำดับที่ #${rec.SequenceNo}`,
+        doEdit
+      );
+    }
+  };
 
   const filteredRequests = useMemo(() => {
     return sheetsData.REQUESTS.filter((rec) => {
@@ -764,6 +841,42 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                       <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">
                         <button
                           type="button"
+                          onClick={() =>
+                            setSelectedWorkRecord({
+                              record: rec,
+                              sheetKey: activeSheet as 'GROUP_1' | 'GROUP_2' | 'GROUP_3',
+                            })
+                          }
+                          title="ดูรายละเอียดการลงเวลา"
+                          aria-label={`ดูรายละเอียดการลงเวลาลำดับที่ #${rec.SequenceNo || idx + 1}`}
+                          className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition active:scale-95"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handlePrintWorkTime(rec, activeSheet as 'GROUP_1' | 'GROUP_2' | 'GROUP_3')
+                          }
+                          title="พิมพ์ใบลงเวลา A4"
+                          aria-label={`พิมพ์ใบลงเวลาลำดับที่ #${rec.SequenceNo || idx + 1}`}
+                          className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition active:scale-95"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleEditWorkTime(rec, activeSheet as 'GROUP_1' | 'GROUP_2' | 'GROUP_3')
+                          }
+                          title="แก้ไขข้อมูล"
+                          aria-label={`แก้ไขบันทึกเวลาลำดับที่ #${rec.SequenceNo || idx + 1}`}
+                          className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition active:scale-95"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
                           title="ลบรายการ"
                           aria-label={`ลบรายการแถวที่ #${rec.SequenceNo || idx + 1}`}
                           onClick={() => {
@@ -843,31 +956,69 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                             </div>
                           </td>
                           <td className="py-3 px-4">{rec.Remarks || '—'}</td>
-                          <td className="py-3 px-4 text-center">
-                            <button
-                              type="button"
-                              title="ลบรายการ"
-                              aria-label={`ลบรายการแถวที่ #${rec.SequenceNo || idx + 1}`}
-                              onClick={() => {
-                                const openDel = () =>
-                                  setDeleteTarget({
-                                    sheetKey: activeSheet,
-                                    recordId: rec.RecordID,
-                                    label: `${WORKSHEET_LABELS_TH[activeSheet]} แถวที่ #${rec.SequenceNo}`,
-                                  });
-                                if (isAuthorized) {
-                                  openDel();
-                                } else {
-                                  onRequestAuthorization(
-                                    'ต้องการสิทธิ์เพื่อลบรายการบันทึกเวลาปฏิบัติงาน',
-                                    openDel
-                                  );
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedWorkRecord({
+                                    record: rec,
+                                    sheetKey: activeSheet as 'GROUP_1' | 'GROUP_2' | 'GROUP_3',
+                                  })
                                 }
-                              }}
-                              className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 inline-flex items-center justify-center transition"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                                title="ดูรายละเอียดการลงเวลา"
+                                aria-label={`ดูรายละเอียดการลงเวลาลำดับที่ #${rec.SequenceNo || idx + 1}`}
+                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition active:scale-95"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handlePrintWorkTime(rec, activeSheet as 'GROUP_1' | 'GROUP_2' | 'GROUP_3')
+                                }
+                                title="พิมพ์ใบลงเวลา A4"
+                                aria-label={`พิมพ์ใบลงเวลาลำดับที่ #${rec.SequenceNo || idx + 1}`}
+                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition active:scale-95"
+                              >
+                                <Printer className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleEditWorkTime(rec, activeSheet as 'GROUP_1' | 'GROUP_2' | 'GROUP_3')
+                                }
+                                title="แก้ไขข้อมูล"
+                                aria-label={`แก้ไขบันทึกเวลาลำดับที่ #${rec.SequenceNo || idx + 1}`}
+                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition active:scale-95"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                title="ลบรายการ"
+                                aria-label={`ลบรายการแถวที่ #${rec.SequenceNo || idx + 1}`}
+                                onClick={() => {
+                                  const openDel = () =>
+                                    setDeleteTarget({
+                                      sheetKey: activeSheet,
+                                      recordId: rec.RecordID,
+                                      label: `${WORKSHEET_LABELS_TH[activeSheet]} แถวที่ #${rec.SequenceNo}`,
+                                    });
+                                  if (isAuthorized) {
+                                    openDel();
+                                  } else {
+                                    onRequestAuthorization(
+                                      'ต้องการสิทธิ์เพื่อลบรายการบันทึกเวลาปฏิบัติงาน',
+                                      openDel
+                                    );
+                                  }
+                                }}
+                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition active:scale-95"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -906,6 +1057,190 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
         }
         onCancel={() => setSelectedReceipt(null)}
       />
+
+      {/* หน้าต่างแสดงเอกสาร A4 ใบลงเวลาการทำงาน เมื่อกดไอคอนเครื่องพิมพ์ */}
+      <PaperDocumentPreviewModal
+        isOpen={Boolean(previewWorkTimeA4)}
+        mode="view-only"
+        payload={previewWorkTimeA4}
+        onCancel={() => setPreviewWorkTimeA4(null)}
+      />
+
+      {/* Drawer แสดงรายละเอียดบันทึกเวลาปฏิบัติงานเมื่อกดไอคอนดวงตา */}
+      <Drawer
+        isOpen={Boolean(selectedWorkRecord)}
+        onClose={() => setSelectedWorkRecord(null)}
+        title={
+          selectedWorkRecord
+            ? `บันทึกเวลาลำดับที่ #${selectedWorkRecord.record.SequenceNo || 1}`
+            : 'รายละเอียดบันทึกเวลาปฏิบัติงาน'
+        }
+        subtitle={
+          selectedWorkRecord
+            ? `${WORK_TIME_GROUPS[selectedWorkRecord.sheetKey].dayTechnicianLabel} • เวลาทำการ ${WORK_TIME_GROUPS[selectedWorkRecord.sheetKey].workingHoursLabel}`
+            : ''
+        }
+        icon={<Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
+        badge={
+          selectedWorkRecord ? (
+            <Badge variant="blue" className="text-xs">
+              {WORK_TIME_GROUPS[selectedWorkRecord.sheetKey].dayTechnicianLabel}
+            </Badge>
+          ) : undefined
+        }
+        footer={
+          selectedWorkRecord ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={() => {
+                  const rec = selectedWorkRecord.record;
+                  const sk = selectedWorkRecord.sheetKey;
+                  setSelectedWorkRecord(null);
+                  const openDel = () =>
+                    setDeleteTarget({
+                      sheetKey: sk,
+                      recordId: rec.RecordID,
+                      label: `${WORKSHEET_LABELS_TH[sk]} แถวที่ #${rec.SequenceNo}`,
+                    });
+                  if (isAuthorized) {
+                    openDel();
+                  } else {
+                    onRequestAuthorization(
+                      'ต้องการสิทธิ์เพื่อลบรายการบันทึกเวลาปฏิบัติงาน',
+                      openDel
+                    );
+                  }
+                }}
+              >
+                ลบรายการ
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  icon={<Printer className="w-4 h-4" />}
+                  onClick={() => {
+                    const rec = selectedWorkRecord.record;
+                    const sk = selectedWorkRecord.sheetKey;
+                    setSelectedWorkRecord(null);
+                    handlePrintWorkTime(rec, sk);
+                  }}
+                >
+                  พิมพ์ใบลงเวลา A4
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  icon={<Edit3 className="w-4 h-4" />}
+                  onClick={() => {
+                    const rec = selectedWorkRecord.record;
+                    const sk = selectedWorkRecord.sheetKey;
+                    setSelectedWorkRecord(null);
+                    handleEditWorkTime(rec, sk);
+                  }}
+                >
+                  แก้ไขข้อมูล
+                </Button>
+              </div>
+            </div>
+          ) : undefined
+        }
+      >
+        {selectedWorkRecord && (
+          <div className="space-y-5 text-sm">
+            {/* ข้อมูลวันเวลา */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-slate-50/70 dark:bg-slate-800/40 space-y-3">
+              <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">วันที่ปฏิบัติงาน</div>
+                  <div className="font-bold text-slate-900 dark:text-white mt-0.5">
+                    {formatDisplayDate(selectedWorkRecord.record.Date)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">ลำดับที่ในแผ่นงาน</div>
+                  <div className="font-bold text-blue-600 dark:text-blue-400 font-mono mt-0.5">
+                    #{selectedWorkRecord.record.SequenceNo}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">ช่วงเวลาปฏิบัติงาน</div>
+                  <div className="font-semibold text-slate-900 dark:text-white font-mono mt-0.5 tabular-nums-thai">
+                    {formatDisplayTime(selectedWorkRecord.record.WorkStartTime)} –{' '}
+                    {formatDisplayTime(selectedWorkRecord.record.WorkEndTime)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">รวมระยะเวลา</div>
+                  <div className="font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    {calculateDurationHours(
+                      selectedWorkRecord.record.WorkStartTime,
+                      selectedWorkRecord.record.WorkEndTime
+                    )}
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <div className="text-xs text-slate-500 dark:text-slate-400">หมายเหตุการปฏิบัติงาน</div>
+                  <div className="font-medium text-slate-900 dark:text-white mt-0.5">
+                    {selectedWorkRecord.record.Remarks || 'ไม่มีหมายเหตุเพิ่มเติม'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ลายมือชื่อสมาชิกประจำวัน */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                <span>
+                  ลายมือชื่อดิจิทัลของสมาชิก ({WORK_TIME_GROUPS[selectedWorkRecord.sheetKey].memberCount} คน)
+                </span>
+              </div>
+              <div className="p-4 space-y-3 bg-white dark:bg-slate-900">
+                {Array.from({ length: WORK_TIME_GROUPS[selectedWorkRecord.sheetKey].memberCount }).map((_, mIdx) => {
+                  const anyRec = selectedWorkRecord.record as unknown as Record<string, string>;
+                  const name = anyRec[`Member${mIdx + 1}Name`] || `สมาชิกคนที่ ${mIdx + 1}`;
+                  const sig = anyRec[`Member${mIdx + 1}Signature`];
+                  return (
+                    <div
+                      key={mIdx}
+                      className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          สมาชิกคนที่ {mIdx + 1}
+                        </div>
+                        <div className="font-bold text-slate-900 dark:text-white mt-0.5 break-words">
+                          {name}
+                        </div>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-2">
+                        {sig ? (
+                          <div className="bg-white p-1 rounded-lg border border-slate-200 shadow-xs">
+                            <img
+                              src={sig}
+                              alt={`ลายเซ็น ${name}`}
+                              className="h-10 w-28 object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">ไม่มีลายเซ็น</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </Drawer>
 
       {/* หน้าต่างยืนยันการลบข้อมูล */}
       <ConfirmDialog

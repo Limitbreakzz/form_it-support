@@ -39,6 +39,8 @@ import { Badge, Button, Card, DateField, Drawer, IconButton, InputField, TimeFie
 interface WorkTimeGroupFormProps {
   groupConfig: GroupConfig;
   records: AnyWorkTimeRecord[];
+  initialEditingRecord?: AnyWorkTimeRecord | null;
+  onCancelEdit?: () => void;
   isAuthorized: boolean;
   onRequestAuthorization: (reason: string, callback: () => void) => void;
   onSaveWorkRecord: (
@@ -56,6 +58,8 @@ interface WorkTimeGroupFormProps {
 export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   groupConfig,
   records,
+  initialEditingRecord,
+  onCancelEdit,
   isAuthorized,
   onRequestAuthorization,
   onSaveWorkRecord,
@@ -107,19 +111,66 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   } | null>(null);
 
   useEffect(() => {
-    setEditingRecord(null);
-    setDrawerWorkRecord(null);
-    setPrintWorkPayload(null);
-    setDate(getCurrentDateISO());
-    setWorkStartTime(getCurrentTime24());
-    setWorkEndTime('16:00');
-    setRemarks('');
-    setMemberNames(getInitialNames());
-    setMemberSignatures(Array(memberCount).fill(''));
-    setErrors({});
-    setFeedback(null);
+    if (initialEditingRecord) {
+      setEditingRecord(initialEditingRecord);
+      setDate(
+        initialEditingRecord.Date
+          ? initialEditingRecord.Date.split('T')[0]
+          : getCurrentDateISO()
+      );
+      setWorkStartTime(
+        initialEditingRecord.WorkStartTime
+          ? initialEditingRecord.WorkStartTime.slice(0, 5)
+          : '08:30'
+      );
+      setWorkEndTime(
+        initialEditingRecord.WorkEndTime
+          ? initialEditingRecord.WorkEndTime.slice(0, 5)
+          : '16:00'
+      );
+      setRemarks(
+        initialEditingRecord.Remarks && initialEditingRecord.Remarks !== '-'
+          ? initialEditingRecord.Remarks
+          : ''
+      );
+
+      if (memberCount === 2) {
+        const r1 = initialEditingRecord as WorkTimeGroup1Record;
+        setMemberNames([
+          r1.Member1Name || groupConfig.defaultMembers[0],
+          r1.Member2Name || groupConfig.defaultMembers[1],
+        ]);
+        setMemberSignatures([r1.Member1Signature || '', r1.Member2Signature || '']);
+      } else {
+        const r3 = initialEditingRecord as WorkTimeGroup2Or3Record;
+        setMemberNames([
+          r3.Member1Name || groupConfig.defaultMembers[0],
+          r3.Member2Name || groupConfig.defaultMembers[1],
+          r3.Member3Name || groupConfig.defaultMembers[2] || '',
+        ]);
+        setMemberSignatures([
+          r3.Member1Signature || '',
+          r3.Member2Signature || '',
+          r3.Member3Signature || '',
+        ]);
+      }
+      setErrors({});
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setEditingRecord(null);
+      setDrawerWorkRecord(null);
+      setPrintWorkPayload(null);
+      setDate(getCurrentDateISO());
+      setWorkStartTime(getCurrentTime24());
+      setWorkEndTime('16:00');
+      setRemarks('');
+      setMemberNames(getInitialNames());
+      setMemberSignatures(Array(memberCount).fill(''));
+      setErrors({});
+      setFeedback(null);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sheetKey, memberCount]);
+  }, [sheetKey, memberCount, initialEditingRecord]);
 
   const handleMemberNameChange = (idx: number, val: string) => {
     const next = [...memberNames];
@@ -348,6 +399,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       );
 
       setEditingRecord(null);
+      if (onCancelEdit) onCancelEdit();
       setRemarks('');
       setMemberSignatures(Array(memberCount).fill(''));
 
@@ -644,6 +696,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                       setEditingRecord(null);
                       setRemarks('');
                       setMemberSignatures(Array(memberCount).fill(''));
+                      if (onCancelEdit) onCancelEdit();
                     }}
                     className="w-full sm:w-auto"
                   >
