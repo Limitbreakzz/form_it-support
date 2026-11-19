@@ -104,6 +104,58 @@ var SHEET_CONFIG = {
 };
 
 /**
+ * ============================================================================
+ * ฟังก์ชันสร้างและตั้งค่า Google Sheet ใหม่ทั้งหมดแบบ 100% (กด "เรียกใช้" / Run เพียงครั้งเดียว)
+ * ============================================================================
+ * สิ่งที่ฟังก์ชันนี้ทำให้คุณโดยอัตโนมัติ:
+ * 1. สร้างครบทั้ง 4 แผ่นงานตามชื่อที่ระบบต้องการ
+ * 2. ตั้งหัวตาราง (Row 1) ด้วยสีน้ำเงินเข้ม ตัวหนา ล็อกแถวบนสุด (Freeze 1 Row)
+ * 3. คอลัมน์เบอร์โทรศัพท์ (F: PhoneNumber) จะถูกล็อกเป็น Plain Text (@) ทั้งคอลัมน์ทันที
+ *    -> ทำให้เลข 0 นำหน้า (เช่น 0615929399) ไม่หายแน่นอน 100%
+ * 4. ลบแผ่นงานเปล่าเริ่มต้น ("แผ่นงาน1" หรือ "Sheet1") ออกให้อัตโนมัติ
+ */
+function setupNewSpreadsheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  var keys = ['REQUESTS', 'GROUP_1', 'GROUP_2', 'GROUP_3'];
+  for (var k = 0; k < keys.length; k++) {
+    var key = keys[k];
+    var config = SHEET_CONFIG[key];
+    var sheet = ss.getSheetByName(config.name);
+    if (!sheet) {
+      sheet = ss.insertSheet(config.name);
+    }
+
+    sheet.getRange(1, 1, 1, config.headers.length).setValues([config.headers]);
+    var headerRange = sheet.getRange(1, 1, 1, config.headers.length);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#1e293b');
+    headerRange.setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+
+    if (key === 'REQUESTS') {
+      var phoneIdx = config.headers.indexOf('PhoneNumber');
+      if (phoneIdx !== -1) {
+        sheet.getRange(1, phoneIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
+      }
+    }
+  }
+
+  // ลบแผ่นงานตั้งต้นที่ว่างเปล่า (Sheet1 หรือ แผ่นงาน1) ถ้ามี
+  var defaultSheets = ['Sheet1', 'แผ่นงาน1', 'Sheet 1'];
+  for (var d = 0; d < defaultSheets.length; d++) {
+    var s = ss.getSheetByName(defaultSheets[d]);
+    if (s && ss.getSheets().length > 1) {
+      try {
+        ss.deleteSheet(s);
+      } catch (e) {}
+    }
+  }
+
+  Logger.log('สร้างและตั้งค่าชีตทั้งหมดเสร็จสมบูรณ์เรียบร้อยแล้ว!');
+}
+
+/**
  * ฟังก์ชันช่วยตั้งค่าและปรับปรุงชีตอัตโนมัติ (สามารถเลือกกดปุ่ม "เรียกใช้" / Run ใน Apps Script ได้เลย)
  * - ปรับปรุงหัวตารางแถวที่ 1 ให้ตรงตามโครงสร้างล่าสุด
  * - จัดรูปแบบคอลัมน์เบอร์โทรศัพท์ (F) ทั้งคอลัมน์ให้เป็น Plain Text (@)
