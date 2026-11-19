@@ -42,7 +42,6 @@ var SHEET_CONFIG = {
       'OtherServiceText',
       'OtherDeviceText',
       'ReceiverName',
-      'Status',
       'CreatedAt',
       'UpdatedAt'
     ]

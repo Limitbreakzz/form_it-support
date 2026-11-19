@@ -22,7 +22,6 @@ import {
   NavigationTab,
   ServiceRequestRecord,
   SheetKey,
-  STATUS_LABELS_TH,
   WORKSHEET_LABELS_TH,
   WORKSHEET_NAMES,
 } from '../types';
@@ -126,7 +125,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
         'อาการเสียที่แจ้ง',
         'รายละเอียดเพิ่มเติม',
         'บริการที่ร้องขอ',
-        'สถานะ',
+        'ผู้รับเรื่อง (ช่าง)',
       ];
       const rows = filteredRequests.map((r) => [
         r.ReceiptNumber,
@@ -141,7 +140,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
         r.ProblemDescription,
         r.AdditionalDetails,
         parseServicesList(r.RequestedServices).map(getServiceThaiLabel).join('; '),
-        STATUS_LABELS_TH[r.Status] || r.Status,
+        r.ReceiverName || '—',
       ]);
       exportToExcelCSV('IT_Support_Requests_Export', headers, rows);
       toast.info('ส่งออกไฟล์ข้อมูลใบแจ้งซ่อม Excel/CSV เรียบร้อยแล้ว');
@@ -391,9 +390,11 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <Badge variant="blue" className="text-xs">
-                            {STATUS_LABELS_TH[rec.Status] || 'เสร็จสิ้น'}
-                          </Badge>
+                          {rec.ReceiverName && (
+                            <Badge variant="blue" className="text-xs">
+                              {rec.ReceiverName}
+                            </Badge>
+                          )}
                           <div className="text-[11px] font-mono text-slate-500 tabular-nums-thai mt-1">
                             {formatDisplayDate(rec.Date)} {formatDisplayTime(rec.Time)}
                           </div>

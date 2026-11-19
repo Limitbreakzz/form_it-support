@@ -204,7 +204,7 @@ export interface ServiceRequestRecord {
   RequestedServices: string; // JSON array or comma-separated list
   OtherServiceText: string;
   ReceiverName?: string;
-  Status: 'Completed' | 'In Progress' | 'Pending';
+  Status?: string; // Optional legacy field for backward compatibility
   CreatedAt: string;
   UpdatedAt: string;
   SyncStatus?: 'synced' | 'pending_sync' | 'local_only';

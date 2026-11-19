@@ -23,7 +23,6 @@ import {
   getAllTechnicians,
   SERVICE_CATALOG,
   ServiceRequestRecord,
-  STATUS_LABELS_TH,
 } from '../types';
 import {
   generateRecordId,
@@ -63,12 +62,6 @@ const PRIMARY_DEVICE_TYPES: { key: DeviceType; label: string }[] = [
   { key: 'Other', label: 'อุปกรณ์อื่น ๆ (ระบุเอง)' },
 ];
 
-const STATUS_OPTIONS: ('Completed' | 'In Progress' | 'Pending')[] = [
-  'Completed',
-  'In Progress',
-  'Pending',
-];
-
 export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
   existingRecords,
   editingRecord,
@@ -84,7 +77,6 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
   );
   const [date, setDate] = useState<string>(() => getCurrentDateISO());
   const [time, setTime] = useState<string>(() => getCurrentTime24());
-  const [status, setStatus] = useState<'Completed' | 'In Progress' | 'Pending'>('Completed');
 
   // 1. ข้อมูลผู้ขอรับบริการและเจ้าหน้าที่ผู้รับเรื่อง
   const technicianOptions = React.useMemo(() => getAllTechnicians(), []);
@@ -147,7 +139,6 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       setEstimatedCost(editingRecord.AdditionalDetails || '');
       setSelectedServices(parseServicesList(editingRecord.RequestedServices));
       setOtherServiceText(editingRecord.OtherServiceText || '');
-      setStatus(editingRecord.Status || 'Completed');
       setErrors({});
     }
   }, [editingRecord]);
@@ -253,7 +244,6 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       RequestedServices: JSON.stringify(finalServices),
       OtherServiceText: otherServiceText.trim(),
       ReceiverName: receiverName.trim(),
-      Status: status,
       CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
       UpdatedAt: nowIso,
     };
@@ -352,7 +342,6 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         setEstimatedCost('');
         setSelectedServices([]);
         setOtherServiceText('');
-        setStatus('Completed');
       }
 
       if (shouldPrintImmediately) {
