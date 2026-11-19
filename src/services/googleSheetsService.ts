@@ -6,7 +6,7 @@ import {
   WorkTimeGroup2Or3Record,
   WORKSHEET_NAMES,
 } from '../types';
-import { generateRecordId, getCurrentDateISO } from '../utils/formatters';
+import { generateRecordId } from '../utils/formatters';
 
 const STORAGE_KEYS: Record<SheetKey, string> = {
   REQUESTS: 'it_support_sheet_requests_v1',
@@ -358,13 +358,12 @@ export async function createSheetRecord<
     }
   }
 
-  const nowDate = getCurrentDateISO();
-  const createdRaw = recordInput.CreatedAt ? String(recordInput.CreatedAt) : nowDate;
+  const nowIso = new Date().toISOString();
   const finalizedRecord: T = {
     ...recordInput,
     RecordID: recordInput.RecordID || generateRecordId(),
-    CreatedAt: createdRaw.includes('T') ? createdRaw.split('T')[0] : createdRaw,
-    UpdatedAt: nowDate,
+    CreatedAt: recordInput.CreatedAt || nowIso,
+    UpdatedAt: nowIso,
   };
 
   if (sheetKey !== 'REQUESTS') {
@@ -477,10 +476,10 @@ export async function updateSheetRecord<
     };
   }
 
-  const nowDate = getCurrentDateISO();
+  const nowIso = new Date().toISOString();
   const recordWithTimestamp: T = {
     ...updatedRecord,
-    UpdatedAt: nowDate,
+    UpdatedAt: nowIso,
   };
 
   const url = getConfiguredGasUrl();

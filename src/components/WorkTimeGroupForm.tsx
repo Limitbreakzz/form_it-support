@@ -268,13 +268,10 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   };
 
   const buildDraftWorkTimeRecord = (): AnyWorkTimeRecord => {
-    const nowDate = getCurrentDateISO();
+    const nowIso = new Date().toISOString();
     const sequenceNo = editingRecord
       ? editingRecord.SequenceNo
       : String(records.length + 1);
-
-    const createdRaw = editingRecord?.CreatedAt ? String(editingRecord.CreatedAt) : nowDate;
-    const cleanCreatedAt = createdRaw.includes('T') ? createdRaw.split('T')[0] : createdRaw;
 
     if (memberCount === 2) {
       const group1Record: WorkTimeGroup1Record = {
@@ -288,8 +285,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         Member2Name: memberNames[1].trim(),
         Member2Signature: memberSignatures[1],
         Remarks: remarks.trim() || '-',
-        CreatedAt: cleanCreatedAt,
-        UpdatedAt: nowDate,
+        CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
+        UpdatedAt: nowIso,
       };
       return group1Record;
     } else {
@@ -306,8 +303,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         Member3Name: memberNames[2].trim(),
         Member3Signature: memberSignatures[2],
         Remarks: remarks.trim() || '-',
-        CreatedAt: cleanCreatedAt,
-        UpdatedAt: nowDate,
+        CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
+        UpdatedAt: nowIso,
       };
       return group2Or3Record;
     }
