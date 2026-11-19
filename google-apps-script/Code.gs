@@ -104,6 +104,54 @@ var SHEET_CONFIG = {
 };
 
 /**
+ * ฟังก์ชันช่วยตั้งค่าและปรับปรุงชีตอัตโนมัติ (สามารถเลือกกดปุ่ม "เรียกใช้" / Run ใน Apps Script ได้เลย)
+ * - ปรับปรุงหัวตารางแถวที่ 1 ให้ตรงตามโครงสร้างล่าสุด
+ * - จัดรูปแบบคอลัมน์เบอร์โทรศัพท์ (F) ทั้งคอลัมน์ให้เป็น Plain Text (@)
+ * - เติมเลข 0 ให้เบอร์เก่าในชีตที่เลข 0 หายไป (เช่น 615929399 -> 0615929399)
+ * - ใส่เครื่องหมาย '-' ให้กับเซลล์ที่ว่างทั้งหมด
+ */
+function setupAndFormatSheet() {
+  initializeAllSheets();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_CONFIG.REQUESTS.name);
+  if (!sheet) return;
+
+  var headers = SHEET_CONFIG.REQUESTS.headers;
+  var phoneIdx = headers.indexOf('PhoneNumber');
+
+  // จัดรูปแบบคอลัมน์ PhoneNumber ทั้งหมดให้เป็น Plain Text
+  if (phoneIdx !== -1) {
+    sheet.getRange(1, phoneIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
+  }
+
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow > 1 && lastCol > 0) {
+    var range = sheet.getRange(2, 1, lastRow - 1, lastCol);
+    var values = range.getValues();
+    for (var r = 0; r < values.length; r++) {
+      for (var c = 0; c < values[r].length; c++) {
+        var val = values[r][c];
+        if (val instanceof Date) {
+          continue;
+        }
+        var str = (val !== undefined && val !== null) ? String(val).trim() : '';
+        if (c === phoneIdx) {
+          if (str && /^[689]\d{8}$/.test(str)) {
+            values[r][c] = '0' + str;
+          }
+        } else {
+          if (!str || str === '') {
+            values[r][c] = '-';
+          }
+        }
+      }
+    }
+    range.setValues(values);
+  }
+}
+
+/**
  * Formats a value for writing into Google Sheets:
  * - Empty / blank / null / undefined values become '-'
  * - PhoneNumber is stored as plain text with leading zeros intact
@@ -346,6 +394,21 @@ function doPost(e) {
 
       sheet.appendRow(newRow);
 
+      // Force format PhoneNumber cell as Plain Text with leading zero
+      if (sheetKey === 'REQUESTS') {
+        var phoneIdx = headers.indexOf('PhoneNumber');
+        if (phoneIdx !== -1) {
+          var lastRowIdx = sheet.getLastRow();
+          var rawPhone = record.PhoneNumber ? String(record.PhoneNumber).replace(/^'+/, '').trim() : '';
+          if (/^[689]\d{8}$/.test(rawPhone)) {
+            rawPhone = '0' + rawPhone;
+          }
+          var cell = sheet.getRange(lastRowIdx, phoneIdx + 1);
+          cell.setNumberFormat('@');
+          cell.setValue(rawPhone || '-');
+        }
+      }
+
       return jsonResponse({
         success: true,
         action: 'create',
@@ -381,6 +444,20 @@ function doPost(e) {
         return formatCellForSheet(h, record[h]);
       });
       sheet.getRange(foundRowIndex, 1, 1, headers.length).setValues([updatedRow]);
+
+      // Force format PhoneNumber cell as Plain Text with leading zero
+      if (sheetKey === 'REQUESTS') {
+        var phoneIdx = headers.indexOf('PhoneNumber');
+        if (phoneIdx !== -1) {
+          var rawPhone = record.PhoneNumber ? String(record.PhoneNumber).replace(/^'+/, '').trim() : '';
+          if (/^[689]\d{8}$/.test(rawPhone)) {
+            rawPhone = '0' + rawPhone;
+          }
+          var cell = sheet.getRange(foundRowIndex, phoneIdx + 1);
+          cell.setNumberFormat('@');
+          cell.setValue(rawPhone || '-');
+        }
+      }
 
       return jsonResponse({
         success: true,
