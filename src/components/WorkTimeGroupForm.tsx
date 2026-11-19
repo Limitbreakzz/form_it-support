@@ -233,7 +233,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         Member1Signature: memberSignatures[0],
         Member2Name: memberNames[1].trim(),
         Member2Signature: memberSignatures[1],
-        Remarks: remarks.trim(),
+        Remarks: remarks.trim() || '-',
         CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
         UpdatedAt: nowIso,
       };
@@ -251,7 +251,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         Member2Signature: memberSignatures[1],
         Member3Name: memberNames[2].trim(),
         Member3Signature: memberSignatures[2],
-        Remarks: remarks.trim(),
+        Remarks: remarks.trim() || '-',
         CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
         UpdatedAt: nowIso,
       };

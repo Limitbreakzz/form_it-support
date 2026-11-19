@@ -29,6 +29,7 @@ import { AllSheetsData } from '../services/googleSheetsService';
 import {
   exportToExcelCSV,
   formatDisplayDate,
+  formatDisplayPhoneNumber,
   formatDisplayTime,
   parseServicesList,
 } from '../utils/formatters';
@@ -132,8 +133,8 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
         r.Date,
         r.Time,
         r.FullName,
-        r.PhoneNumber,
-        r.Department,
+        formatDisplayPhoneNumber(r.PhoneNumber),
+        r.Department || '-',
         getDeviceTypeThaiLabel(r.DeviceType),
         r.DeviceBrandModel,
         r.DeviceSerialNumber,
@@ -535,8 +536,8 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                               {rec.FullName}
                             </div>
                             <div className="text-xs text-slate-500">
-                              <span className="font-mono">{rec.PhoneNumber}</span>
-                              {rec.Department ? ` • ${rec.Department}` : ''}
+                              <span className="font-mono">{formatDisplayPhoneNumber(rec.PhoneNumber)}</span>
+                              {rec.Department && rec.Department !== '-' ? ` • ${rec.Department}` : ''}
                             </div>
                           </td>
                           <td className="py-3.5 px-4 max-w-xs">

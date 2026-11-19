@@ -104,6 +104,27 @@ var SHEET_CONFIG = {
 };
 
 /**
+ * Formats a value for writing into Google Sheets:
+ * - Empty / blank / null / undefined values become '-'
+ * - PhoneNumber is stored as plain text with leading zeros intact
+ */
+function formatCellForSheet(header, rawVal) {
+  var str = (rawVal !== undefined && rawVal !== null) ? String(rawVal).trim() : '';
+  if (!str || str === '') {
+    return '-';
+  }
+  if (header === 'PhoneNumber') {
+    if (str === '-') return '-';
+    var cleanPhone = str.replace(/^'+/, '').trim();
+    if (/^[689]\d{8}$/.test(cleanPhone)) {
+      cleanPhone = '0' + cleanPhone;
+    }
+    return cleanPhone.startsWith("'") ? cleanPhone : "'" + cleanPhone;
+  }
+  return str;
+}
+
+/**
  * Ensures a worksheet exists and has the required header row.
  */
 function ensureSheet(sheetKey) {
@@ -126,18 +147,35 @@ function ensureSheet(sheetKey) {
     headerRange.setFontColor('#ffffff');
     sheet.setFrozenRows(1);
   } else {
-    var existingHeaders = sheet.getRange(1, 1, 1, config.headers.length).getValues()[0];
+    var maxCols = Math.max(lastCol, config.headers.length);
+    var existingHeaders = sheet.getRange(1, 1, 1, maxCols).getValues()[0];
     var mismatch = false;
     for (var i = 0; i < config.headers.length; i++) {
-      if (String(existingHeaders[i]).trim() !== config.headers[i]) {
+      if (String(existingHeaders[i] || '').trim() !== config.headers[i]) {
         mismatch = true;
         break;
       }
     }
     if (mismatch) {
+      if (lastCol > config.headers.length) {
+        sheet.getRange(1, config.headers.length + 1, 1, lastCol - config.headers.length).clearContent();
+      }
       sheet.getRange(1, 1, 1, config.headers.length).setValues([config.headers]);
+      var updatedHeaderRange = sheet.getRange(1, 1, 1, config.headers.length);
+      updatedHeaderRange.setFontWeight('bold');
+      updatedHeaderRange.setBackground('#1e293b');
+      updatedHeaderRange.setFontColor('#ffffff');
     }
   }
+
+  // Format PhoneNumber column as plain text '@' in Google Sheets
+  if (sheetKey === 'REQUESTS') {
+    var phoneIdx = config.headers.indexOf('PhoneNumber');
+    if (phoneIdx !== -1) {
+      sheet.getRange(2, phoneIdx + 1, Math.max(1, sheet.getMaxRows() - 1), 1).setNumberFormat('@');
+    }
+  }
+
   return { sheet: sheet, headers: config.headers, name: config.name };
 }
 
@@ -173,8 +211,16 @@ function readSheetRecords(sheetKey) {
       if (val instanceof Date) {
         val = Utilities.formatDate(val, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
       }
-      obj[headers[c]] = val !== undefined && val !== null ? String(val) : '';
-      if (obj[headers[c]] !== '') {
+      var strVal = (val !== undefined && val !== null) ? String(val).trim() : '';
+      if (headers[c] === 'PhoneNumber') {
+        if (strVal.startsWith("'")) {
+          strVal = strVal.substring(1);
+        } else if (/^[689]\d{8}$/.test(strVal)) {
+          strVal = '0' + strVal;
+        }
+      }
+      obj[headers[c]] = strVal;
+      if (strVal !== '' && strVal !== '-') {
         hasContent = true;
       }
     }
@@ -295,7 +341,7 @@ function doPost(e) {
       }
 
       var newRow = headers.map(function(h) {
-        return record[h] !== undefined && record[h] !== null ? String(record[h]) : '';
+        return formatCellForSheet(h, record[h]);
       });
 
       sheet.appendRow(newRow);
@@ -332,7 +378,7 @@ function doPost(e) {
 
       record.UpdatedAt = nowIso;
       var updatedRow = headers.map(function(h) {
-        return record[h] !== undefined && record[h] !== null ? String(record[h]) : '';
+        return formatCellForSheet(h, record[h]);
       });
       sheet.getRange(foundRowIndex, 1, 1, headers.length).setValues([updatedRow]);
 

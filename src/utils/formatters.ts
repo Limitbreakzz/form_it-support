@@ -53,6 +53,22 @@ export function generateRecordId(): string {
 }
 
 /**
+ * จัดรูปแบบเบอร์โทรศัพท์สำหรับแสดงผล:
+ * - ตัดเครื่องหมาย ' นำหน้า (ถ้ามีจากการเก็บ plain text ใน Google Sheets)
+ * - เติมเลข 0 นำหน้าอัตโนมัติหากมี 9 หลัก (เช่น 615929399 -> 0615929399)
+ * - หากเป็นค่าว่างให้คืนค่า '-'
+ */
+export function formatDisplayPhoneNumber(phoneStr?: string | null): string {
+  if (!phoneStr) return '-';
+  let clean = String(phoneStr).trim().replace(/^'+/, '');
+  if (!clean || clean === '-') return '-';
+  if (/^[689]\d{8}$/.test(clean)) {
+    clean = `0${clean}`;
+  }
+  return clean;
+}
+
+/**
  * แสดงผลวันที่ในรูปแบบภาษาไทยที่อ่านง่าย เช่น "18 พ.ย. 2569"
  */
 export function formatDisplayDate(dateStr: string): string {

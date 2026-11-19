@@ -227,23 +227,28 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         ? `${estimatedCost.trim()} บาท`
         : `${calculateEstimatedServiceCost(finalServices)} บาท`;
 
+    const cleanPhone = phoneNumber.trim().replace(/^'+/, '');
+    const normalizedPhone = cleanPhone
+      ? (/^[689]\d{8}$/.test(cleanPhone) ? `0${cleanPhone}` : cleanPhone)
+      : '-';
+
     return {
       RecordID: editingRecord ? editingRecord.RecordID : generateRecordId(),
       ReceiptNumber: receiptNumber.trim(),
       Date: date.trim(),
       Time: time.trim(),
       FullName: fullName.trim(),
-      PhoneNumber: phoneNumber.trim(),
-      Department: department.trim(),
+      PhoneNumber: normalizedPhone,
+      Department: department.trim() || '-',
       DeviceType: deviceType as DeviceType,
-      OtherDeviceText: deviceType === 'Other' ? otherDeviceText.trim() : '',
-      DeviceBrandModel: deviceBrandModel.trim(),
-      DeviceSerialNumber: deviceSerialNumber.trim(),
-      ProblemDescription: problemDescription.trim(),
+      OtherDeviceText: deviceType === 'Other' ? (otherDeviceText.trim() || '-') : '-',
+      DeviceBrandModel: deviceBrandModel.trim() || '-',
+      DeviceSerialNumber: deviceSerialNumber.trim() || '-',
+      ProblemDescription: problemDescription.trim() || '-',
       AdditionalDetails: computedCost,
       RequestedServices: JSON.stringify(finalServices),
-      OtherServiceText: otherServiceText.trim(),
-      ReceiverName: receiverName.trim(),
+      OtherServiceText: otherServiceText.trim() || '-',
+      ReceiverName: receiverName.trim() || '-',
       CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
       UpdatedAt: nowIso,
     };

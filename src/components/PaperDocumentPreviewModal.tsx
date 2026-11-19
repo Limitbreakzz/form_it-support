@@ -27,6 +27,7 @@ import {
 } from '../types';
 import {
   formatDisplayDate,
+  formatDisplayPhoneNumber,
   formatDisplayTime,
   formatTimeTo24Hours,
   parseServicesList,
@@ -515,11 +516,11 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
   }
 
   return (
-    <div className="flex flex-col justify-between h-full min-h-[255mm] max-h-[275mm] text-slate-900 text-xs leading-normal select-text">
-      <div className="space-y-2.5">
+    <div className="flex flex-col justify-between h-full min-h-[235mm] max-h-[265mm] text-slate-900 text-xs leading-normal select-text">
+      <div className="space-y-2">
         {/* ส่วนหัวกระดาษตามแบบฟอร์มตัวอย่าง: IT SUPPORT แบบสอบถามและใบลงข้อมูลการขอรับบริการ */}
-        <header className="text-center pb-2 border-b-2 border-[#1e3a8a] relative avoid-page-break">
-          <div className="inline-block bg-[#dbeafe] border border-[#93c5fd] rounded-xl px-6 py-1.5 shadow-sm">
+        <header className="text-center pb-1.5 border-b-2 border-[#1e3a8a] relative avoid-page-break">
+          <div className="inline-block bg-[#dbeafe] border border-[#93c5fd] rounded-xl px-5 py-1 shadow-sm">
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-wide text-[#0f172a]">
               IT SUPPORT
             </h1>
@@ -527,10 +528,10 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
               แบบสอบถามและใบลงข้อมูลการขอรับบริการ
             </div>
           </div>
-          <p className="text-[11px] sm:text-xs font-bold text-[#1e3a8a] mt-1">
+          <p className="text-[11px] sm:text-xs font-bold text-[#1e3a8a] mt-0.5">
             งานบริการด้านคอมพิวเตอร์และเทคโนโลยีสารสนเทศ • อาคาร 1 ชั้น 3 ห้อง 3
           </p>
-          <div className="mt-1 flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-600 tabular-nums-thai">
+          <div className="mt-0.5 flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-600 tabular-nums-thai">
             <span>
               เลขที่ใบรับบริการ: <strong className="text-[#1e3a8a]">{record.ReceiptNumber}</strong>
             </span>
@@ -543,22 +544,22 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
 
         {/* 1. ข้อมูลผู้ขอรับบริการ */}
         <section className="avoid-page-break pt-0.5">
-          <div className="inline-flex items-center gap-1.5 bg-[#1e3a8a] text-white font-bold text-xs px-3.5 py-1 rounded-full -mb-2.5 ml-3 relative z-10 shadow-sm">
+          <div className="inline-flex items-center gap-1.5 bg-[#1e3a8a] text-white font-bold text-xs px-3.5 py-0.5 rounded-full -mb-2.5 ml-3 relative z-10 shadow-sm">
             <User className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
             <span>1. ข้อมูลผู้ขอรับบริการ</span>
           </div>
-          <div className="border-[1.5px] border-[#60a5fa] rounded-xl pt-4 pb-2.5 px-4 bg-white space-y-1.5">
+          <div className="border-[1.5px] border-[#60a5fa] rounded-xl pt-3.5 pb-2 px-3.5 bg-white space-y-1">
             <div className="flex flex-wrap items-baseline gap-2 text-xs">
               <span className="font-bold text-slate-900 shrink-0">ชื่อ - นามสกุล :</span>
               <span className="flex-1 border-b border-slate-500 px-2 pb-0.5 font-semibold text-slate-900 min-w-[200px]">
                 {record.FullName}
-                {record.Department ? ` (${record.Department})` : ''}
+                {record.Department && record.Department !== '-' ? ` (${record.Department})` : ''}
               </span>
             </div>
             <div className="flex flex-wrap items-baseline gap-2 text-xs">
               <span className="font-bold text-slate-900 shrink-0">เบอร์โทร :</span>
               <span className="flex-1 border-b border-slate-500 px-2 pb-0.5 font-semibold text-slate-900 tabular-nums-thai min-w-[200px]">
-                {record.PhoneNumber}
+                {formatDisplayPhoneNumber(record.PhoneNumber)}
               </span>
             </div>
           </div>
@@ -657,20 +658,20 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
             <span>3. เลือกบริการที่ต้องการ (เลือกได้มากกว่า 1 รายการ)</span>
           </div>
 
-          <div className="border-[1.5px] border-[#60a5fa] rounded-xl overflow-hidden bg-white pt-1.5">
+          <div className="border-[1.5px] border-[#60a5fa] rounded-xl overflow-hidden bg-white pt-1">
             <table className="w-full border-collapse text-[11px]">
               <thead>
                 <tr className="bg-[#dbeafe] text-[#0f172a] border-y border-[#93c5fd]">
-                  <th className="py-1 px-2.5 text-center font-bold border-r border-[#93c5fd] w-[36%]">
+                  <th className="py-0.5 px-2.5 text-center font-bold border-r border-[#93c5fd] w-[36%]">
                     ด้านคอมพิวเตอร์และซอฟต์แวร์
                   </th>
-                  <th className="py-1 px-2 text-center font-bold border-r border-[#93c5fd] w-[14%]">
+                  <th className="py-0.5 px-2 text-center font-bold border-r border-[#93c5fd] w-[14%]">
                     ค่าบริการ
                   </th>
-                  <th className="py-1 px-2.5 text-center font-bold border-r border-[#93c5fd] w-[36%]">
+                  <th className="py-0.5 px-2.5 text-center font-bold border-r border-[#93c5fd] w-[36%]">
                     ด้านฮาร์ดแวร์
                   </th>
-                  <th className="py-1 px-2 text-center font-bold w-[14%]">
+                  <th className="py-0.5 px-2 text-center font-bold w-[14%]">
                     ค่าบริการ
                   </th>
                 </tr>
@@ -687,7 +688,7 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
                   return (
                     <tr key={rowIdx} className="border-b border-slate-200 last:border-b-0">
                       {/* ซ้าย: ด้านคอมพิวเตอร์และซอฟต์แวร์ */}
-                      <td className="py-1 px-2.5 border-r border-[#93c5fd] align-top">
+                      <td className="py-0.5 px-2.5 border-r border-[#93c5fd] align-top">
                         {leftItem && (
                           <div className="flex items-start gap-1.5">
                             <span
@@ -709,12 +710,12 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
                           </div>
                         )}
                       </td>
-                      <td className="py-1 px-2 text-center border-r border-[#93c5fd] font-medium tabular-nums-thai align-top">
+                      <td className="py-0.5 px-2 text-center border-r border-[#93c5fd] font-medium tabular-nums-thai align-top">
                         {leftItem ? leftItem.priceLabel : ''}
                       </td>
 
                       {/* ขวา: ด้านฮาร์ดแวร์ */}
-                      <td className="py-1 px-2.5 border-r border-[#93c5fd] align-top">
+                      <td className="py-0.5 px-2.5 border-r border-[#93c5fd] align-top">
                         {rightItem && (
                           <div className="flex items-start gap-1.5">
                             <span
@@ -736,7 +737,7 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
                           </div>
                         )}
                       </td>
-                      <td className="py-1 px-2 text-center font-medium tabular-nums-thai align-top">
+                      <td className="py-0.5 px-2 text-center font-medium tabular-nums-thai align-top">
                         {rightItem ? rightItem.priceLabel : ''}
                       </td>
                     </tr>
@@ -747,7 +748,7 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
           </div>
 
           {/* บรรทัด บริการอื่น ๆ / รายละเอียดเพิ่มเติม และ ประเมินค่าใช้จ่าย ____ บาท */}
-          <div className="mt-2 flex flex-wrap items-baseline justify-between gap-3 px-1 text-xs">
+          <div className="mt-1 flex flex-wrap items-baseline justify-between gap-3 px-1 text-xs">
             <div className="flex items-baseline gap-1.5 flex-1 min-w-[220px]">
               <span className="font-bold text-slate-900 shrink-0">
                 บริการอื่น ๆ / รายละเอียดเพิ่มเติม :
@@ -768,11 +769,11 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
 
         {/* 4. การยืนยันก่อนให้บริการและการรับทราบ */}
         <section className="avoid-page-break pt-0.5">
-          <div className="inline-flex items-center gap-1.5 bg-[#1e3a8a] text-white font-bold text-xs px-3.5 py-1 rounded-full -mb-2.5 ml-3 relative z-10 shadow-sm">
+          <div className="inline-flex items-center gap-1.5 bg-[#1e3a8a] text-white font-bold text-xs px-3.5 py-0.5 rounded-full -mb-2.5 ml-3 relative z-10 shadow-sm">
             <FileText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
             <span>4. การยืนยันก่อนให้บริการและการรับทราบ</span>
           </div>
-          <div className="border-[1.5px] border-[#60a5fa] rounded-xl pt-4 pb-2 px-4 bg-white space-y-1.5 text-[11px]">
+          <div className="border-[1.5px] border-[#60a5fa] rounded-xl pt-3 pb-1.5 px-3.5 bg-white space-y-1 text-[11px]">
             {ACKNOWLEDGMENT_ITEMS.map((item, idx) => (
               <div key={idx} className="flex items-start gap-2">
                 <span className="mt-0.5 w-3.5 h-3.5 rounded-[3px] border border-[#1e3a8a] bg-[#1e3a8a] text-white flex items-center justify-center shrink-0">
@@ -786,7 +787,7 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
       </div>
 
       {/* บรรทัดลงลายมือชื่อผู้ขอรับบริการ และ ลายมือชื่อผู้รับเรื่อง ท้ายกระดาษ */}
-      <footer className="pt-4 mt-2 avoid-page-break">
+      <footer className="pt-2 mt-1 avoid-page-break">
         <div className="grid grid-cols-2 gap-8 px-2 text-xs">
           <div className="flex items-baseline gap-2">
             <span className="font-bold text-slate-900 shrink-0">ลายชื่อผู้ขอรับบริการ :</span>
