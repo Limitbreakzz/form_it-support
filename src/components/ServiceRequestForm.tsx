@@ -217,7 +217,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
   };
 
   const buildCurrentDraftRecord = (): ServiceRequestRecord => {
-    const nowIso = new Date().toISOString();
+    const nowDate = getCurrentDateISO();
     const finalServices = [...selectedServices];
     if (otherServiceText.trim() && !finalServices.includes('Other')) {
       finalServices.push('Other');
@@ -231,6 +231,9 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     const normalizedPhone = cleanPhone
       ? (/^[689]\d{8}$/.test(cleanPhone) ? `0${cleanPhone}` : cleanPhone)
       : '-';
+
+    const createdRaw = editingRecord?.CreatedAt ? String(editingRecord.CreatedAt) : nowDate;
+    const cleanCreatedAt = createdRaw.includes('T') ? createdRaw.split('T')[0] : createdRaw;
 
     return {
       RecordID: editingRecord ? editingRecord.RecordID : generateRecordId(),
@@ -249,8 +252,8 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       RequestedServices: JSON.stringify(finalServices),
       OtherServiceText: otherServiceText.trim() || '-',
       ReceiverName: receiverName.trim() || '-',
-      CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
-      UpdatedAt: nowIso,
+      CreatedAt: cleanCreatedAt,
+      UpdatedAt: nowDate,
     };
   };
 

@@ -258,9 +258,17 @@ function setupAndFormatSheet() {
         for (var c = 0; c < values[r].length; c++) {
           var val = values[r][c];
           if (val instanceof Date) {
+            values[r][c] = Utilities.formatDate(val, Session.getScriptTimeZone() || 'Asia/Bangkok', 'yyyy-MM-dd');
             continue;
           }
           var str = (val !== undefined && val !== null) ? String(val).trim() : '';
+          
+          // ตัดเวลา ISO ทิ้ง ให้เหลือเฉพาะวันที่ (เช่น 2026-11-19T03:40:23.079Z -> 2026-11-19)
+          if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+            str = str.split('T')[0];
+            values[r][c] = str;
+          }
+
           if (key === 'REQUESTS' && c === 5) {
             // คอลัมน์เบอร์โทรศัพท์ (PhoneNumber)
             if (str && /^[689]\d{8}$/.test(str)) {
@@ -284,13 +292,14 @@ function setupAndFormatSheet() {
     }
   }
 
-  Logger.log('อัปเดตหัวข้อภาษาไทยและจัดรูปแบบตารางทั้ง 4 ชีตเรียบร้อยแล้ว!');
+  Logger.log('อัปเดตหัวข้อภาษาไทย ตัดเวลา T ให้เหลือแค่วันที่ และจัดรูปแบบตารางทั้ง 4 ชีตเรียบร้อยแล้ว!');
 }
 
 /**
  * Formats a value for writing into Google Sheets:
  * - Empty / blank / null / undefined values become '-'
  * - PhoneNumber is stored as plain text with leading zeros intact
+ * - CreatedAt / UpdatedAt are stored as date only (YYYY-MM-DD), no ISO time (T03:40:23.079Z)
  */
 function formatCellForSheet(header, rawVal) {
   var str = (rawVal !== undefined && rawVal !== null) ? String(rawVal).trim() : '';
@@ -304,6 +313,13 @@ function formatCellForSheet(header, rawVal) {
       cleanPhone = '0' + cleanPhone;
     }
     return cleanPhone.startsWith("'") ? cleanPhone : "'" + cleanPhone;
+  }
+  if (header === 'CreatedAt' || header === 'UpdatedAt') {
+    if (str === '-') return '-';
+    if (str.indexOf('T') !== -1) {
+      return str.split('T')[0];
+    }
+    return str;
   }
   return str;
 }
@@ -394,7 +410,7 @@ function readSheetRecords(sheetKey) {
     for (var c = 0; c < headers.length; c++) {
       var val = row[c];
       if (val instanceof Date) {
-        val = Utilities.formatDate(val, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
+        val = Utilities.formatDate(val, Session.getScriptTimeZone() || 'Asia/Bangkok', "yyyy-MM-dd");
       }
       var strVal = (val !== undefined && val !== null) ? String(val).trim() : '';
       if (headers[c] === 'PhoneNumber') {
@@ -403,6 +419,9 @@ function readSheetRecords(sheetKey) {
         } else if (/^[689]\d{8}$/.test(strVal)) {
           strVal = '0' + strVal;
         }
+      }
+      if ((headers[c] === 'CreatedAt' || headers[c] === 'UpdatedAt') && strVal.indexOf('T') !== -1) {
+        strVal = strVal.split('T')[0];
       }
       obj[headers[c]] = strVal;
       if (strVal !== '' && strVal !== '-') {
@@ -483,7 +502,7 @@ function doPost(e) {
     var action = payload.action;
     var sheetKey = payload.sheetKey;
     var record = payload.record || {};
-    var nowIso = new Date().toISOString();
+    var nowDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Bangkok', 'yyyy-MM-dd');
 
     if (action === 'initSheets') {
       return jsonResponse({
@@ -517,8 +536,9 @@ function doPost(e) {
       if (!record.RecordID) {
         record.RecordID = Utilities.getUuid();
       }
-      record.CreatedAt = record.CreatedAt || nowIso;
-      record.UpdatedAt = nowIso;
+      var createdRaw = record.CreatedAt ? String(record.CreatedAt) : nowDate;
+      record.CreatedAt = (createdRaw.indexOf('T') !== -1) ? createdRaw.split('T')[0] : createdRaw;
+      record.UpdatedAt = nowDate;
 
       // Auto-calculate SequenceNo for work time sheets if not provided
       if (sheetKey !== 'REQUESTS') {
@@ -576,7 +596,7 @@ function doPost(e) {
         throw new Error('Record not found with RecordID: ' + targetId);
       }
 
-      record.UpdatedAt = nowIso;
+      record.UpdatedAt = nowDate;
       var updatedRow = headers.map(function(h) {
         return formatCellForSheet(h, record[h]);
       });
