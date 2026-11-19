@@ -86,7 +86,7 @@ export function getConfiguredGasUrl(): string {
   if (envUrl && typeof envUrl === 'string' && envUrl.trim().startsWith('https://script.google.com/')) {
     return envUrl.trim();
   }
-  return '';
+  return 'https://script.google.com/macros/s/AKfycbxCtB8Hkh1ARiCKdLir321BxeENl_5ybBEhFJrQTnlrLLELq_s5Xwep4Htd7eUfzDVe/exec';
 }
 
 export function setConfiguredGasUrl(url: string): void {
