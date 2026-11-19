@@ -44,6 +44,26 @@ var SHEET_CONFIG = {
       'ReceiverName',
       'CreatedAt',
       'UpdatedAt'
+    ],
+    thaiHeaders: [
+      'รหัสรายการ (RecordID)',
+      'เลขที่ใบรับบริการ',
+      'วันที่',
+      'เวลา',
+      'ชื่อ-นามสกุล',
+      'เบอร์โทรศัพท์',
+      'แผนก/สาขาวิชา',
+      'ชนิดอุปกรณ์',
+      'ยี่ห้อและรุ่น',
+      'หมายเลขเครื่อง (S/N)',
+      'อาการเสีย/ปัญหาที่พบ',
+      'ประเมินค่าบริการ',
+      'บริการที่เลือก',
+      'บริการอื่น ๆ',
+      'อุปกรณ์อื่น ๆ',
+      'ช่างผู้รับเรื่อง',
+      'เวลาบันทึกระบบ',
+      'เวลาอัปเดตล่าสุด'
     ]
   },
   GROUP_1: {
@@ -61,6 +81,20 @@ var SHEET_CONFIG = {
       'Remarks',
       'CreatedAt',
       'UpdatedAt'
+    ],
+    thaiHeaders: [
+      'รหัสรายการ',
+      'ลำดับที่',
+      'วันที่ปฏิบัติงาน',
+      'เวลาเข้างาน',
+      'เวลาออกงาน',
+      'ชื่อช่างคนที่ 1',
+      'ลายเซ็นช่างคนที่ 1',
+      'ชื่อช่างคนที่ 2',
+      'ลายเซ็นช่างคนที่ 2',
+      'หมายเหตุ',
+      'เวลาบันทึกระบบ',
+      'เวลาอัปเดตล่าสุด'
     ]
   },
   GROUP_2: {
@@ -80,6 +114,22 @@ var SHEET_CONFIG = {
       'Remarks',
       'CreatedAt',
       'UpdatedAt'
+    ],
+    thaiHeaders: [
+      'รหัสรายการ',
+      'ลำดับที่',
+      'วันที่ปฏิบัติงาน',
+      'เวลาเข้างาน',
+      'เวลาออกงาน',
+      'ชื่อช่างคนที่ 1',
+      'ลายเซ็นช่างคนที่ 1',
+      'ชื่อช่างคนที่ 2',
+      'ลายเซ็นช่างคนที่ 2',
+      'ชื่อช่างคนที่ 3',
+      'ลายเซ็นช่างคนที่ 3',
+      'หมายเหตุ',
+      'เวลาบันทึกระบบ',
+      'เวลาอัปเดตล่าสุด'
     ]
   },
   GROUP_3: {
@@ -99,6 +149,22 @@ var SHEET_CONFIG = {
       'Remarks',
       'CreatedAt',
       'UpdatedAt'
+    ],
+    thaiHeaders: [
+      'รหัสรายการ',
+      'ลำดับที่',
+      'วันที่ปฏิบัติงาน',
+      'เวลาเข้างาน',
+      'เวลาออกงาน',
+      'ชื่อช่างคนที่ 1',
+      'ลายเซ็นช่างคนที่ 1',
+      'ชื่อช่างคนที่ 2',
+      'ลายเซ็นช่างคนที่ 2',
+      'ชื่อช่างคนที่ 3',
+      'ลายเซ็นช่างคนที่ 3',
+      'หมายเหตุ',
+      'เวลาบันทึกระบบ',
+      'เวลาอัปเดตล่าสุด'
     ]
   }
 };
@@ -126,8 +192,9 @@ function setupNewSpreadsheet() {
       sheet = ss.insertSheet(config.name);
     }
 
-    sheet.getRange(1, 1, 1, config.headers.length).setValues([config.headers]);
-    var headerRange = sheet.getRange(1, 1, 1, config.headers.length);
+    var displayHeaders = config.thaiHeaders || config.headers;
+    sheet.getRange(1, 1, 1, displayHeaders.length).setValues([displayHeaders]);
+    var headerRange = sheet.getRange(1, 1, 1, displayHeaders.length);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#1e293b');
     headerRange.setFontColor('#ffffff');
@@ -152,55 +219,72 @@ function setupNewSpreadsheet() {
     }
   }
 
-  Logger.log('สร้างและตั้งค่าชีตทั้งหมดเสร็จสมบูรณ์เรียบร้อยแล้ว!');
+  Logger.log('สร้างและตั้งค่าชีตทั้งหมดพร้อมหัวข้อภาษาไทยเสร็จสมบูรณ์เรียบร้อยแล้ว!');
 }
 
 /**
  * ฟังก์ชันช่วยตั้งค่าและปรับปรุงชีตอัตโนมัติ (สามารถเลือกกดปุ่ม "เรียกใช้" / Run ใน Apps Script ได้เลย)
- * - ปรับปรุงหัวตารางแถวที่ 1 ให้ตรงตามโครงสร้างล่าสุด
- * - จัดรูปแบบคอลัมน์เบอร์โทรศัพท์ (F) ทั้งคอลัมน์ให้เป็น Plain Text (@)
+ * - เปลี่ยนหัวตารางแถวที่ 1 ของทั้ง 4 แผ่นงานให้เป็น "ภาษาไทย" สวยงามและเข้าใจง่าย
+ * - จัดรูปแบบคอลัมน์เบอร์โทรศัพท์ (F) ทั้งคอลัมน์ให้เป็น Plain Text (@) เพื่อให้เลข 0 ไม่หาย
  * - เติมเลข 0 ให้เบอร์เก่าในชีตที่เลข 0 หายไป (เช่น 615929399 -> 0615929399)
  * - ใส่เครื่องหมาย '-' ให้กับเซลล์ที่ว่างทั้งหมด
  */
 function setupAndFormatSheet() {
-  initializeAllSheets();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_CONFIG.REQUESTS.name);
-  if (!sheet) return;
+  var keys = ['REQUESTS', 'GROUP_1', 'GROUP_2', 'GROUP_3'];
 
-  var headers = SHEET_CONFIG.REQUESTS.headers;
-  var phoneIdx = headers.indexOf('PhoneNumber');
+  for (var k = 0; k < keys.length; k++) {
+    var key = keys[k];
+    var config = SHEET_CONFIG[key];
+    var sheet = ss.getSheetByName(config.name);
+    if (!sheet) {
+      sheet = ss.insertSheet(config.name);
+    }
 
-  // จัดรูปแบบคอลัมน์ PhoneNumber ทั้งหมดให้เป็น Plain Text
-  if (phoneIdx !== -1) {
-    sheet.getRange(1, phoneIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-  }
+    var displayHeaders = config.thaiHeaders || config.headers;
+    sheet.getRange(1, 1, 1, displayHeaders.length).setValues([displayHeaders]);
+    var headerRange = sheet.getRange(1, 1, 1, displayHeaders.length);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#1e293b');
+    headerRange.setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
 
-  var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
-  if (lastRow > 1 && lastCol > 0) {
-    var range = sheet.getRange(2, 1, lastRow - 1, lastCol);
-    var values = range.getValues();
-    for (var r = 0; r < values.length; r++) {
-      for (var c = 0; c < values[r].length; c++) {
-        var val = values[r][c];
-        if (val instanceof Date) {
-          continue;
-        }
-        var str = (val !== undefined && val !== null) ? String(val).trim() : '';
-        if (c === phoneIdx) {
-          if (str && /^[689]\d{8}$/.test(str)) {
-            values[r][c] = '0' + str;
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    if (lastRow > 1 && lastCol > 0) {
+      var range = sheet.getRange(2, 1, lastRow - 1, lastCol);
+      var values = range.getValues();
+      for (var r = 0; r < values.length; r++) {
+        for (var c = 0; c < values[r].length; c++) {
+          var val = values[r][c];
+          if (val instanceof Date) {
+            continue;
           }
-        } else {
-          if (!str || str === '') {
-            values[r][c] = '-';
+          var str = (val !== undefined && val !== null) ? String(val).trim() : '';
+          if (key === 'REQUESTS' && c === 5) {
+            // คอลัมน์เบอร์โทรศัพท์ (PhoneNumber)
+            if (str && /^[689]\d{8}$/.test(str)) {
+              values[r][c] = '0' + str;
+            }
+          } else {
+            if (!str || str === '') {
+              values[r][c] = '-';
+            }
           }
         }
       }
+      range.setValues(values);
     }
-    range.setValues(values);
+
+    if (key === 'REQUESTS') {
+      var phoneIdx = config.headers.indexOf('PhoneNumber');
+      if (phoneIdx !== -1) {
+        sheet.getRange(1, phoneIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
+      }
+    }
   }
+
+  Logger.log('อัปเดตหัวข้อภาษาไทยและจัดรูปแบบตารางทั้ง 4 ชีตเรียบร้อยแล้ว!');
 }
 
 /**
@@ -238,30 +322,31 @@ function ensureSheet(sheetKey) {
     sheet = ss.insertSheet(config.name);
   }
 
+  var displayHeaders = config.thaiHeaders || config.headers;
   var lastCol = sheet.getLastColumn();
   if (lastCol === 0 || sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, config.headers.length).setValues([config.headers]);
-    var headerRange = sheet.getRange(1, 1, 1, config.headers.length);
+    sheet.getRange(1, 1, 1, displayHeaders.length).setValues([displayHeaders]);
+    var headerRange = sheet.getRange(1, 1, 1, displayHeaders.length);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#1e293b');
     headerRange.setFontColor('#ffffff');
     sheet.setFrozenRows(1);
   } else {
-    var maxCols = Math.max(lastCol, config.headers.length);
+    var maxCols = Math.max(lastCol, displayHeaders.length);
     var existingHeaders = sheet.getRange(1, 1, 1, maxCols).getValues()[0];
-    var mismatch = false;
-    for (var i = 0; i < config.headers.length; i++) {
-      if (String(existingHeaders[i] || '').trim() !== config.headers[i]) {
-        mismatch = true;
+    var isThai = true;
+    for (var i = 0; i < displayHeaders.length; i++) {
+      if (String(existingHeaders[i] || '').trim() !== String(displayHeaders[i]).trim()) {
+        isThai = false;
         break;
       }
     }
-    if (mismatch) {
-      if (lastCol > config.headers.length) {
-        sheet.getRange(1, config.headers.length + 1, 1, lastCol - config.headers.length).clearContent();
+    if (!isThai) {
+      if (lastCol > displayHeaders.length) {
+        sheet.getRange(1, displayHeaders.length + 1, 1, lastCol - displayHeaders.length).clearContent();
       }
-      sheet.getRange(1, 1, 1, config.headers.length).setValues([config.headers]);
-      var updatedHeaderRange = sheet.getRange(1, 1, 1, config.headers.length);
+      sheet.getRange(1, 1, 1, displayHeaders.length).setValues([displayHeaders]);
+      var updatedHeaderRange = sheet.getRange(1, 1, 1, displayHeaders.length);
       updatedHeaderRange.setFontWeight('bold');
       updatedHeaderRange.setBackground('#1e293b');
       updatedHeaderRange.setFontColor('#ffffff');
@@ -276,7 +361,7 @@ function ensureSheet(sheetKey) {
     }
   }
 
-  return { sheet: sheet, headers: config.headers, name: config.name };
+  return { sheet: sheet, headers: config.headers, thaiHeaders: displayHeaders, name: config.name };
 }
 
 /**
