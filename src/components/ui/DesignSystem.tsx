@@ -90,6 +90,40 @@ export const Button: React.FC<ButtonProps> = ({
   );
 };
 
+/**
+ * Animated Running Dots Indicator (3 sequential bouncing wave dots)
+ * Accessible: aria-hidden=true (decorative) while aligning cleanly with Thai typography
+ */
+export interface RunningDotsProps {
+  className?: string;
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+}
+
+export const RunningDots: React.FC<RunningDotsProps> = ({
+  className = '',
+  size = 'sm',
+}) => {
+  const dotSize =
+    size === 'xs'
+      ? 'w-1 h-1'
+      : size === 'sm'
+      ? 'w-1.5 h-1.5'
+      : size === 'lg'
+      ? 'w-2.5 h-2.5'
+      : 'w-2 h-2';
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 align-middle ml-1 select-none ${className}`}
+      aria-hidden="true"
+    >
+      <span className={`${dotSize} rounded-full bg-current animate-runningDot1`} />
+      <span className={`${dotSize} rounded-full bg-current animate-runningDot2`} />
+      <span className={`${dotSize} rounded-full bg-current animate-runningDot3`} />
+    </span>
+  );
+};
+
 export type IconButtonVariant = 'neutral' | 'primary' | 'emerald' | 'danger';
 
 interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

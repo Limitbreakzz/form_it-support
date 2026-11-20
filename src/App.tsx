@@ -35,7 +35,7 @@ import { WorkTimeGroupForm } from './components/WorkTimeGroupForm';
 import { SubmissionHistoryView } from './components/SubmissionHistoryView';
 import { GoogleSheetsSetupView } from './components/GoogleSheetsSetupView';
 import { AuthorizationModal } from './components/AuthorizationModal';
-import { Badge, Drawer, ToastContainer } from './components/ui/DesignSystem';
+import { Badge, Drawer, RunningDots, ToastContainer } from './components/ui/DesignSystem';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
@@ -277,18 +277,35 @@ export function App() {
                 onClick={() => handleNavigate('setup')}
                 title="คลิกเพื่อดูหรือตั้งค่าการเชื่อมต่อ Google Sheets"
                 className={`hidden md:inline-flex items-center gap-2 min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-                  isConnected
+                  isLoading
+                    ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/60 dark:border-blue-800 dark:text-blue-300'
+                    : isConnected
                     ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100/70 dark:bg-emerald-950/60 dark:border-emerald-800 dark:text-emerald-300'
                     : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100/70 dark:bg-amber-950/60 dark:border-amber-800 dark:text-amber-300'
                 }`}
               >
                 <span
                   className={`h-2 w-2 rounded-full shrink-0 ${
-                    isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                    isLoading
+                      ? 'bg-blue-500 animate-pulse'
+                      : isConnected
+                      ? 'bg-emerald-500 animate-pulse'
+                      : 'bg-amber-500'
                   }`}
                   aria-hidden="true"
                 />
-                <span>{isConnected ? 'เชื่อมต่อฐานข้อมูลแล้ว' : 'บันทึกในเครื่อง (ตั้งค่าออนไลน์)'}</span>
+                <span>
+                  {isLoading ? (
+                    <span className="inline-flex items-center">
+                      กำลังซิงก์ข้อมูล
+                      <RunningDots size="xs" />
+                    </span>
+                  ) : isConnected ? (
+                    'เชื่อมต่อฐานข้อมูลแล้ว'
+                  ) : (
+                    'บันทึกในเครื่อง (ตั้งค่าออนไลน์)'
+                  )}
+                </span>
               </button>
 
               {/* ปุ่มสลับสิทธิ์เจ้าหน้าที่ */}

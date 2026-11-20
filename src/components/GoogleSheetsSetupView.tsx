@@ -21,7 +21,7 @@ import {
   testGoogleSheetsConnection,
 } from '../services/googleSheetsService';
 import gasSourceCode from '../../google-apps-script/Code.gs?raw';
-import { Badge, Button, Card, toast } from './ui/DesignSystem';
+import { Badge, Button, Card, RunningDots, toast } from './ui/DesignSystem';
 
 interface GoogleSheetsSetupViewProps {
   isConnected: boolean;
@@ -222,7 +222,14 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
                 isLoading={testing}
                 icon={<RefreshCw className="w-4 h-4" />}
               >
-                {testing ? 'กำลังทดสอบการเชื่อมต่อ...' : 'บันทึกและทดสอบการเชื่อมต่อ'}
+                {testing ? (
+                  <span className="inline-flex items-center">
+                    กำลังทดสอบการเชื่อมต่อ
+                    <RunningDots size="xs" />
+                  </span>
+                ) : (
+                  'บันทึกและทดสอบการเชื่อมต่อ'
+                )}
               </Button>
 
               {urlInput.trim() && (
@@ -233,7 +240,14 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
                   icon={<CloudUpload className="w-4 h-4" />}
                   onClick={handleSyncPending}
                 >
-                  {syncing ? 'กำลังซิงก์ข้อมูล...' : 'ส่งข้อมูลที่ค้างในเครื่องขึ้น Google Sheets'}
+                  {syncing ? (
+                    <span className="inline-flex items-center">
+                      กำลังซิงก์ข้อมูล
+                      <RunningDots size="xs" />
+                    </span>
+                  ) : (
+                    'ส่งข้อมูลที่ค้างในเครื่องขึ้น Google Sheets'
+                  )}
                 </Button>
               )}
             </div>

@@ -330,12 +330,42 @@ pre code {
   animation: scaleCheck 220ms var(--ease-out-expo) forwards;
 }
 
+/* Sequential Running/Bouncing Wave Dots Animation (iMessage / Slack / Vercel standard) */
+@keyframes runningDot {
+  0%, 80%, 100% {
+    opacity: 0.25;
+    transform: translateY(0px) scale(0.75);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.15);
+  }
+}
+
+.animate-runningDot1 {
+  animation: runningDot 1.2s infinite ease-in-out;
+  animation-delay: -0.32s;
+}
+
+.animate-runningDot2 {
+  animation: runningDot 1.2s infinite ease-in-out;
+  animation-delay: -0.16s;
+}
+
+.animate-runningDot3 {
+  animation: runningDot 1.2s infinite ease-in-out;
+  animation-delay: 0s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-toastSlideIn,
-  .animate-scaleCheck {
+  .animate-scaleCheck,
+  .animate-runningDot1,
+  .animate-runningDot2,
+  .animate-runningDot3 {
     animation: none !important;
     transform: none !important;
-    opacity: 1 !important;
+    opacity: 0.8 !important;
   }
 }
 

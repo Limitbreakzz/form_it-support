@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, HelpCircle, X } from 'lucide-react';
-import { Button, IconButton } from './ui/DesignSystem';
+import { Button, IconButton, RunningDots } from './ui/DesignSystem';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -136,7 +136,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             isLoading={isLoading}
             className="w-full sm:w-auto"
           >
-            {isLoading ? 'กำลังดำเนินการ...' : confirmLabel}
+            {isLoading ? (
+              <span className="inline-flex items-center">
+                กำลังดำเนินการ
+                <RunningDots size="xs" />
+              </span>
+            ) : (
+              confirmLabel
+            )}
           </Button>
         </div>
       </div>

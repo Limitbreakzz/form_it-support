@@ -32,7 +32,7 @@ import {
   formatTimeTo24Hours,
   parseServicesList,
 } from '../utils/formatters';
-import { Badge, Button } from './ui/DesignSystem';
+import { Badge, Button, RunningDots } from './ui/DesignSystem';
 
 export type PaperPreviewPayload =
   | {
@@ -311,7 +311,14 @@ export const PaperDocumentPreviewModal: React.FC<PaperDocumentPreviewModalProps>
                   icon={<Printer className="w-4 h-4" />}
                   onClick={() => onConfirmAndSubmit(true)}
                 >
-                  {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกและพิมพ์ A4'}
+                  {isSubmitting ? (
+                    <span className="inline-flex items-center">
+                      กำลังบันทึก
+                      <RunningDots size="xs" />
+                    </span>
+                  ) : (
+                    'บันทึกและพิมพ์ A4'
+                  )}
                 </Button>
               </>
             )}
@@ -463,7 +470,14 @@ export const PaperDocumentPreviewModal: React.FC<PaperDocumentPreviewModalProps>
                   icon={<Printer className="w-4 h-4" />}
                   onClick={() => onConfirmAndSubmit(true)}
                 >
-                  {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกและพิมพ์ A4'}
+                  {isSubmitting ? (
+                    <span className="inline-flex items-center">
+                      กำลังบันทึก
+                      <RunningDots size="xs" />
+                    </span>
+                  ) : (
+                    'บันทึกและพิมพ์ A4'
+                  )}
                 </Button>
               </>
             )}

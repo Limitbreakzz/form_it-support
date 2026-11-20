@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { NavigationTab, WORK_TIME_GROUPS } from '../types';
 import { AllSheetsData } from '../services/googleSheetsService';
-import { Badge, Button, Card } from './ui/DesignSystem';
+import { Badge, Button, Card, RunningDots } from './ui/DesignSystem';
 
 interface DashboardHomeProps {
   sheetsData: AllSheetsData;
@@ -57,7 +57,8 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               </Badge>
               {isLoading && (
                 <Badge variant="blue" icon={<Loader2 className="w-3.5 h-3.5 animate-spin" />}>
-                  กำลังซิงก์ข้อมูลล่าสุด...
+                  กำลังซิงก์ข้อมูลล่าสุด
+                  <RunningDots size="xs" />
                 </Badge>
               )}
               <Badge variant="slate" icon={<FileSpreadsheet className="w-3.5 h-3.5" />}>
