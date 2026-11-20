@@ -719,10 +719,10 @@ interface WheelColumnProps {
   items: string[];
   selectedIndex: number;
   onSelect: (index: number) => void;
-  unitLabel: string;
+  ariaLabel: string;
 }
 
-const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelect, unitLabel }) => {
+const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelect, ariaLabel }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isUserInteractingRef = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -759,20 +759,17 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelec
   };
 
   return (
-    <div className="relative flex-1 flex flex-col items-center">
-      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
-        {unitLabel}
-      </span>
-
+    <div className="relative flex-1 h-full flex flex-col items-center">
       {/* กระบอกหมุน (Drum wheel) รองรับ swipe / touch / mouse wheel พร้อม snap กึ่งกลาง */}
       <div
         ref={containerRef}
         onScroll={handleScroll}
         onTouchStart={startUserInteraction}
+        onTouchMove={startUserInteraction}
         onMouseDown={startUserInteraction}
         onWheel={startUserInteraction}
         tabIndex={0}
-        aria-label={unitLabel}
+        aria-label={ariaLabel}
         className="w-full h-[220px] overflow-y-auto snap-y snap-mandatory select-none py-[88px] touch-pan-y focus:outline-none"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
@@ -926,35 +923,42 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
           </span>
         </div>
 
+        {/* หัวบอกคอลัมน์ ชั่วโมง และ นาที (อยู่นอกกระบอกหมุน เพื่อความคมชัดและไม่เบียดให้ตำแหน่งเลื่อนผิด) */}
+        <div className="px-7 pt-1 pb-1 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 select-none">
+          <div className="flex-1 text-center">ชั่วโมง (00 – 23)</div>
+          <div className="w-6 shrink-0" />
+          <div className="flex-1 text-center">นาที (00 – 59)</div>
+        </div>
+
         {/* ห้องกระบอกหมุนทรงกระบอกคู่ (Unified Cylinder Drum Chamber สไตล์ iOS Alarm Clock) */}
-        <div className="px-5 py-2">
-          <div className="relative overflow-hidden rounded-2xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 p-2">
-            {/* แถบเลนส์กระจกไฮไลต์แถวกลางแบบชิ้นเดียว (Continuous Selection Lens) */}
+        <div className="px-5 py-1">
+          <div className="relative overflow-hidden rounded-2xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 h-[220px]">
+            {/* แถบเลนส์กระจกไฮไลต์แถวกลางแบบชิ้นเดียว อยู่ตรงกลางกึ่งกลางพอดีเป๊ะ (Centered Selection Lens) */}
             <div
               aria-hidden="true"
-              className="absolute left-2 right-2 top-[88px] h-[44px] rounded-xl bg-white dark:bg-slate-700/90 shadow-sm border border-slate-200 dark:border-slate-600/80 pointer-events-none z-0"
+              className="absolute left-2 right-2 top-[88px] h-[44px] rounded-xl bg-white dark:bg-slate-700 shadow-sm border border-slate-200/90 dark:border-slate-600/80 pointer-events-none z-0"
             />
 
             {/* เงาไล่ระดับบน-ล่างให้ความลึกเสมือนกระบอกหมุนจริง */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-[80px] bg-gradient-to-b from-slate-100 via-slate-100/70 to-transparent dark:from-slate-800 dark:via-slate-800/70 to-transparent z-10"
+              className="pointer-events-none absolute inset-x-0 top-0 h-[76px] bg-gradient-to-b from-slate-100 via-slate-100/80 to-transparent dark:from-slate-800 dark:via-slate-800/80 to-transparent z-10"
             />
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-[80px] bg-gradient-to-t from-slate-100 via-slate-100/70 to-transparent dark:from-slate-800 dark:via-slate-800/70 to-transparent z-10"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-[76px] bg-gradient-to-t from-slate-100 via-slate-100/80 to-transparent dark:from-slate-800 dark:via-slate-800/80 to-transparent z-10"
             />
 
-            {/* 2 คอลัมน์ ชั่วโมง และ นาที */}
-            <div className="flex items-center justify-center gap-2">
+            {/* 2 คอลัมน์ ชั่วโมง และ นาที + เครื่องหมาย : อยู่กึ่งกลางความสูงพอดี */}
+            <div className="flex items-center justify-center gap-2 h-full relative z-20">
               <WheelColumn
                 items={HOURS}
                 selectedIndex={selectedHour}
                 onSelect={setSelectedHour}
-                unitLabel="ชั่วโมง"
+                ariaLabel="เลือกชั่วโมง"
               />
 
-              <div className="font-mono text-2xl font-bold text-slate-400 dark:text-slate-500 pt-5 select-none z-20" aria-hidden="true">
+              <div className="font-mono text-2xl font-bold text-slate-400 dark:text-slate-500 select-none z-20 shrink-0" aria-hidden="true">
                 :
               </div>
 
@@ -962,7 +966,7 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
                 items={MINUTES}
                 selectedIndex={selectedMinute}
                 onSelect={setSelectedMinute}
-                unitLabel="นาที"
+                ariaLabel="เลือกนาที"
               />
             </div>
           </div>
