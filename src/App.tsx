@@ -29,6 +29,7 @@ import {
   updateSheetRecord,
 } from './services/googleSheetsService';
 import { DashboardHome } from './components/DashboardHome';
+import { DashboardSkeleton } from './components/DashboardSkeleton';
 import { ServiceRequestForm } from './components/ServiceRequestForm';
 import { WorkTimeGroupForm } from './components/WorkTimeGroupForm';
 import { SubmissionHistoryView } from './components/SubmissionHistoryView';
@@ -217,6 +218,9 @@ export function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+      {/* แถบความคืบหน้าการซิงก์ข้อมูลบางเบาระดับพรีเมียม (Linear/Vercel standard) */}
+      {isLoading && <div className="top-loading-bar no-print" aria-hidden="true" />}
+
       {/* ลิงก์ข้ามไปยังเนื้อหาหลักสำหรับผู้ใช้งานคีย์บอร์ด */}
       <a href="#main-content" className="skip-link no-print">
         ข้ามไปยังเนื้อหาหลัก
@@ -520,12 +524,21 @@ export function App() {
         className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 focus:outline-none"
       >
         {activeTab === 'dashboard' && (
-          <DashboardHome
-            sheetsData={sheetsData}
-            isConnected={isConnected}
-            isLoading={isLoading}
-            onNavigate={handleNavigate}
-          />
+          isLoading &&
+          sheetsData.REQUESTS.length +
+            sheetsData.GROUP_1.length +
+            sheetsData.GROUP_2.length +
+            sheetsData.GROUP_3.length ===
+            0 ? (
+            <DashboardSkeleton />
+          ) : (
+            <DashboardHome
+              sheetsData={sheetsData}
+              isConnected={isConnected}
+              isLoading={isLoading}
+              onNavigate={handleNavigate}
+            />
+          )
         )}
 
         {activeTab === 'service-request' && (

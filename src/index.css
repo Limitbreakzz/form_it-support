@@ -206,6 +206,29 @@ pre code {
   font-variant-numeric: tabular-nums;
 }
 
+/* Top Slim Loading Progress Bar (Linear/Vercel standard) */
+.top-loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 9999;
+  background: linear-gradient(90deg, #2563eb 0%, #6366f1 50%, #10b981 75%, #2563eb 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* Skeleton Shimmer Animation with Reduced Motion Support */
 .skeleton-shimmer {
   background: linear-gradient(

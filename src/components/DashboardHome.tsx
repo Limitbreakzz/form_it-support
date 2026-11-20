@@ -85,7 +85,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               onClick={() => onNavigate('history')}
               className="w-full sm:w-auto"
             >
-              ติดตามงานซ่อมและประวัติ ({isLoading && totalRequests + totalWorkLogs === 0 ? 'กำลังโหลด...' : totalRequests + totalWorkLogs})
+              ติดตามงานซ่อมและประวัติ ({totalRequests + totalWorkLogs})
             </Button>
           </div>
         </div>
@@ -107,13 +107,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               />
             </div>
             <div className="mt-1.5 flex items-baseline gap-2">
-              {isLoading && totalRequests === 0 ? (
-                <span className="inline-block w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse my-0.5" />
-              ) : (
-                <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
-                  {totalRequests}
-                </span>
-              )}
+              <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
+                {totalRequests}
+              </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">รายการแจ้งซ่อม</span>
             </div>
             <div className="mt-1 text-xs text-blue-700 dark:text-blue-400 font-medium truncate">
@@ -136,13 +132,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               />
             </div>
             <div className="mt-1.5 flex items-baseline gap-2">
-              {isLoading && group1Count === 0 ? (
-                <span className="inline-block w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse my-0.5" />
-              ) : (
-                <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
-                  {group1Count}
-                </span>
-              )}
+              <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
+                {group1Count}
+              </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">แถว (สมาชิก 2 คน)</span>
             </div>
             <div className="mt-1 text-xs text-slate-700 dark:text-slate-400 font-medium truncate">
@@ -165,13 +157,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               />
             </div>
             <div className="mt-1.5 flex items-baseline gap-2">
-              {isLoading && group2Count === 0 ? (
-                <span className="inline-block w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse my-0.5" />
-              ) : (
-                <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
-                  {group2Count}
-                </span>
-              )}
+              <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
+                {group2Count}
+              </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">แถว (สมาชิก 2 คน)</span>
             </div>
             <div className="mt-1 text-xs text-emerald-800 dark:text-emerald-400 font-medium truncate">
@@ -194,13 +182,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               />
             </div>
             <div className="mt-1.5 flex items-baseline gap-2">
-              {isLoading && group3Count === 0 ? (
-                <span className="inline-block w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse my-0.5" />
-              ) : (
-                <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
-                  {group3Count}
-                </span>
-              )}
+              <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
+                {group3Count}
+              </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">แถว (สมาชิก 3 คน)</span>
             </div>
             <div className="mt-1 text-xs text-amber-800 dark:text-amber-400 font-medium truncate">
