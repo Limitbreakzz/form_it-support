@@ -70,21 +70,24 @@ export const LoginView: React.FC<LoginViewProps> = ({
     setIsLoading(true);
 
     setTimeout(() => {
-      // ตรวจสอบชื่อผู้ใช้งาน admin และรหัสผ่าน 123456
-      if (
-        (cleanUser === 'admin' || cleanUser === 'it-support' || cleanUser === 'staff') &&
-        (cleanPass === '123456' || cleanPass === '1234' || cleanPass === 'admin1234')
-      ) {
+      // ตรวจสอบชื่อผู้ใช้งานและรหัสผ่านจาก PRESET_ACCOUNTS ใน src/types/index.ts
+      const matchedAccount = PRESET_ACCOUNTS.find(
+        (acc) =>
+          acc.username.toLowerCase() === cleanUser &&
+          acc.password === cleanPass
+      );
+
+      if (matchedAccount) {
         setIsLoading(false);
         const authUser: AuthUser = {
-          id: defaultAccount.id,
-          username: 'admin',
-          name: defaultAccount.name,
-          role: 'admin',
-          roleLabelTh: defaultAccount.roleLabelTh,
-          avatarColor: defaultAccount.avatarColor,
+          id: matchedAccount.id,
+          username: matchedAccount.username,
+          name: matchedAccount.name,
+          role: matchedAccount.role,
+          roleLabelTh: matchedAccount.roleLabelTh,
+          avatarColor: matchedAccount.avatarColor,
         };
-        toast.success(`ยินดีต้อนรับ ${defaultAccount.name}`, {
+        toast.success(`ยินดีต้อนรับ ${matchedAccount.name}`, {
           title: 'เข้าสู่ระบบสำเร็จ',
         });
         onLoginSuccess(authUser);
