@@ -11,7 +11,6 @@ import {
   Sun,
   User,
   Wrench,
-  Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AuthUser, PRESET_ACCOUNTS } from '../types';
@@ -38,7 +37,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
     avatarColor: 'bg-blue-600',
   };
 
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,11 +59,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
     const cleanPass = password.trim();
 
     if (!cleanUser) {
-      triggerErrorShake('กรุณากรอกชื่อผู้ใช้งาน (admin)');
+      triggerErrorShake('กรุณากรอกชื่อผู้ใช้งาน');
       return;
     }
     if (!cleanPass) {
-      triggerErrorShake('กรุณากรอกรหัสผ่าน (123456)');
+      triggerErrorShake('กรุณากรอกรหัสผ่าน');
       return;
     }
 
@@ -91,32 +90,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
         onLoginSuccess(authUser);
       } else {
         setIsLoading(false);
-        triggerErrorShake('รหัสผ่านไม่ถูกต้อง กรุณากรอกรหัสผ่าน 123456');
+        triggerErrorShake('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง');
       }
     }, 380);
-  };
-
-  const handleQuickAutoFill = () => {
-    setUsername('admin');
-    setPassword('123456');
-    setErrorMessage('');
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-      const authUser: AuthUser = {
-        id: defaultAccount.id,
-        username: 'admin',
-        name: defaultAccount.name,
-        role: 'admin',
-        roleLabelTh: defaultAccount.roleLabelTh,
-        avatarColor: defaultAccount.avatarColor,
-      };
-      toast.success(`ยินดีต้อนรับ ${defaultAccount.name}`, {
-        title: 'เข้าสู่ระบบสำเร็จ',
-      });
-      onLoginSuccess(authUser);
-    }, 320);
   };
 
   return (
@@ -204,7 +180,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 เข้าสู่ระบบสำหรับเจ้าหน้าที่
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                บัญชีกลางสำหรับสมาชิกทุกคน เข้าใช้งานระบบจัดการงานซ่อม
+                กรอกชื่อผู้ใช้งานและรหัสผ่านเพื่อเข้าใช้งานระบบ
               </p>
             </div>
 
@@ -220,7 +196,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </div>
               )}
 
-              {/* ช่องชื่อผู้ใช้งาน (Default: admin) */}
+              {/* ช่องชื่อผู้ใช้งาน */}
               <div className="space-y-1.5">
                 <label
                   htmlFor="login-username"
@@ -242,7 +218,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       setUsername(e.target.value);
                       if (errorMessage) setErrorMessage('');
                     }}
-                    placeholder="admin"
+                    placeholder="กรอกชื่อผู้ใช้งาน"
                     className="w-full h-[46px] pl-10 pr-3.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-medium focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/15 focus-visible:border-blue-600 transition-all"
                   />
                 </div>
@@ -250,17 +226,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
               {/* ช่องรหัสผ่าน */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label
-                    htmlFor="login-password"
-                    className="block text-xs font-bold text-slate-700 dark:text-slate-300"
-                  >
-                    รหัสผ่าน (Password)
-                  </label>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                    รหัสผ่าน: 123456
-                  </span>
-                </div>
+                <label
+                  htmlFor="login-password"
+                  className="block text-xs font-bold text-slate-700 dark:text-slate-300"
+                >
+                  รหัสผ่าน (Password)
+                </label>
                 <div className="relative group">
                   <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                     <KeyRound className="w-4 h-4" aria-hidden="true" />
@@ -275,7 +246,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       setPassword(e.target.value);
                       if (errorMessage) setErrorMessage('');
                     }}
-                    placeholder="กรอกรหัสผ่าน 123456"
+                    placeholder="กรอกรหัสผ่าน"
                     className="w-full h-[46px] pl-10 pr-11 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-mono tracking-wider focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/15 focus-visible:border-blue-600 transition-all"
                   />
                   <button
@@ -307,20 +278,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </Button>
               </div>
             </form>
-
-            {/* ปุ่มเข้าสู่ระบบด่วน 1 คลิก ด้วยรหัส admin / 123456 */}
-            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
-              <button
-                type="button"
-                onClick={handleQuickAutoFill}
-                disabled={isLoading}
-                title="คลิกเพื่อเข้าสู่ระบบทันทีด้วยรหัสกลาง (admin / 123456)"
-                className="w-full py-2.5 px-3.5 rounded-2xl border border-blue-200/80 dark:border-blue-900/40 bg-blue-50/70 hover:bg-blue-100/80 dark:bg-blue-950/30 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold transition-all flex items-center justify-center gap-2 group active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover:rotate-12 transition-transform" aria-hidden="true" />
-                <span>เข้าสู่ระบบทันทีด้วยรหัสกลาง (admin / 123456)</span>
-              </button>
-            </div>
           </Card>
 
           {/* ป้ายระบุความปลอดภัยแบบกระชับ */}
