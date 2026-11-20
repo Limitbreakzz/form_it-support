@@ -34,6 +34,22 @@ export interface ApiActionResult<T = unknown> {
 }
 
 /**
+ * ตรวจสอบว่าแอปกำลังทำงานบนเครื่องตัวเอง (localhost) หรือในวง LAN หรือไม่
+ * เพื่อไม่ให้ยิงหา Port 4100 เมื่อรันอยู่บนโฮสติ้งคลาวด์ เช่น Vercel
+ */
+export function isLocalOrLanEnvironment(): boolean {
+  if (typeof window === 'undefined' || !window.location) return false;
+  const h = window.location.hostname;
+  return (
+    h === 'localhost' ||
+    h === '127.0.0.1' ||
+    h.startsWith('192.168.') ||
+    h.startsWith('10.') ||
+    h.endsWith('.local')
+  );
+}
+
+/**
  * สร้าง Base URL สำหรับเชื่อมต่อกับ LAN Backend Server (Port 4100) แบบไดนามิก
  * รองรับทั้งการเข้าผ่าน localhost และเข้าผ่าน IP ของเครื่องในวง LAN เดียวกัน
  */
@@ -54,9 +70,15 @@ async function fetchLanBackend<T = unknown>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T | null> {
+  // หากรันอยู่บนคลาวด์ เช่น Vercel (form-it-support...vercel.app) ไม่ต้องพยายามเชื่อมต่อ Port 4100
+  // เพื่อไม่ให้เสียเวลารอ Timeout 3.5 วินาทีทุกครั้งที่โหลดหน้าเว็บ
+  if (!isLocalOrLanEnvironment() && !import.meta.env.VITE_BACKEND_API_URL) {
+    return null;
+  }
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
     const baseUrl = getLanBackendBaseUrl();
     const response = await fetch(`${baseUrl}${endpoint}`, {
       ...options,
@@ -138,6 +160,19 @@ export function saveLocalSheetRecords<T>(sheetKey: SheetKey, records: T[]): void
   } catch (e) {
     console.error('ไม่สามารถสำรองข้อมูลลงในหน่วยความจำเครื่องได้:', e);
   }
+}
+
+/**
+ * ดึงข้อมูลที่มีอยู่ในหน่วยความจำเครื่อง (LocalStorage) ทั้งหมดทันที 0ms
+ * เพื่อนำมาแสดงผลแบบ Instant (Stale-While-Revalidate) ป้องกันตัวเลขสถิติแสดง 0 หรือตัวหนังสือกระพริบหายขณะโหลด
+ */
+export function getCachedAllSheetsData(): AllSheetsData {
+  return {
+    REQUESTS: getLocalSheetRecords<ServiceRequestRecord>('REQUESTS'),
+    GROUP_1: getLocalSheetRecords<WorkTimeGroup1Record>('GROUP_1'),
+    GROUP_2: getLocalSheetRecords<WorkTimeGroup2Or3Record>('GROUP_2'),
+    GROUP_3: getLocalSheetRecords<WorkTimeGroup2Or3Record>('GROUP_3'),
+  };
 }
 
 /**

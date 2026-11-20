@@ -24,6 +24,7 @@ import {
   createSheetRecord,
   deleteSheetRecord,
   fetchAllWorksheets,
+  getCachedAllSheetsData,
   getConfiguredGasUrl,
   updateSheetRecord,
 } from './services/googleSheetsService';
@@ -42,12 +43,8 @@ export function App() {
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const [sheetsData, setSheetsData] = useState<AllSheetsData>({
-    REQUESTS: [],
-    GROUP_1: [],
-    GROUP_2: [],
-    GROUP_3: [],
-  });
+  // ดึงข้อมูลแคชจากหน่วยความจำเครื่องขึ้นมาทันที 0ms ป้องกันหน้าจอแสดง 0 และป้องกันความรู้สึกข้อมูลหาย
+  const [sheetsData, setSheetsData] = useState<AllSheetsData>(() => getCachedAllSheetsData());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isConnected, setIsConnected] = useState<boolean>(() => Boolean(getConfiguredGasUrl()));
 
@@ -526,6 +523,7 @@ export function App() {
           <DashboardHome
             sheetsData={sheetsData}
             isConnected={isConnected}
+            isLoading={isLoading}
             onNavigate={handleNavigate}
           />
         )}

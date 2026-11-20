@@ -7,6 +7,7 @@ import {
   Database,
   FileSpreadsheet,
   FolderKanban,
+  Loader2,
   ShieldCheck,
   Users,
   Wrench,
@@ -18,12 +19,14 @@ import { Badge, Button, Card } from './ui/DesignSystem';
 interface DashboardHomeProps {
   sheetsData: AllSheetsData;
   isConnected: boolean;
+  isLoading?: boolean;
   onNavigate: (tab: NavigationTab) => void;
 }
 
 export const DashboardHome: React.FC<DashboardHomeProps> = ({
   sheetsData,
   isConnected,
+  isLoading = false,
   onNavigate,
 }) => {
   const totalRequests = sheetsData.REQUESTS.length;
@@ -52,6 +55,11 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                   ? 'เชื่อมต่อระบบบันทึกข้อมูลออนไลน์ (Google Sheets) พร้อมใช้งาน'
                   : 'ทำงานในโหมดบันทึกในเครื่องอัตโนมัติ (ข้อมูลไม่สูญหาย)'}
               </Badge>
+              {isLoading && (
+                <Badge variant="blue" icon={<Loader2 className="w-3.5 h-3.5 animate-spin" />}>
+                  กำลังซิงก์ข้อมูลล่าสุด...
+                </Badge>
+              )}
               <Badge variant="slate" icon={<FileSpreadsheet className="w-3.5 h-3.5" />}>
                 แยกเก็บข้อมูล 4 หมวดหมู่
               </Badge>
@@ -77,7 +85,7 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               onClick={() => onNavigate('history')}
               className="w-full sm:w-auto"
             >
-              ติดตามงานซ่อมและประวัติ ({totalRequests + totalWorkLogs})
+              ติดตามงานซ่อมและประวัติ ({isLoading && totalRequests + totalWorkLogs === 0 ? 'กำลังโหลด...' : totalRequests + totalWorkLogs})
             </Button>
           </div>
         </div>
@@ -99,9 +107,13 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               />
             </div>
             <div className="mt-1.5 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
-                {totalRequests}
-              </span>
+              {isLoading && totalRequests === 0 ? (
+                <span className="inline-block w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse my-0.5" />
+              ) : (
+                <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
+                  {totalRequests}
+                </span>
+              )}
               <span className="text-xs text-slate-500 dark:text-slate-400">รายการแจ้งซ่อม</span>
             </div>
             <div className="mt-1 text-xs text-blue-700 dark:text-blue-400 font-medium truncate">
@@ -124,9 +136,13 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               />
             </div>
             <div className="mt-1.5 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
-                {group1Count}
-              </span>
+              {isLoading && group1Count === 0 ? (
+                <span className="inline-block w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse my-0.5" />
+              ) : (
+                <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
+                  {group1Count}
+                </span>
+              )}
               <span className="text-xs text-slate-500 dark:text-slate-400">แถว (สมาชิก 2 คน)</span>
             </div>
             <div className="mt-1 text-xs text-slate-700 dark:text-slate-400 font-medium truncate">
@@ -149,9 +165,13 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               />
             </div>
             <div className="mt-1.5 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
-                {group2Count}
-              </span>
+              {isLoading && group2Count === 0 ? (
+                <span className="inline-block w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse my-0.5" />
+              ) : (
+                <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
+                  {group2Count}
+                </span>
+              )}
               <span className="text-xs text-slate-500 dark:text-slate-400">แถว (สมาชิก 2 คน)</span>
             </div>
             <div className="mt-1 text-xs text-emerald-800 dark:text-emerald-400 font-medium truncate">
@@ -174,9 +194,13 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               />
             </div>
             <div className="mt-1.5 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
-                {group3Count}
-              </span>
+              {isLoading && group3Count === 0 ? (
+                <span className="inline-block w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse my-0.5" />
+              ) : (
+                <span className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums-thai">
+                  {group3Count}
+                </span>
+              )}
               <span className="text-xs text-slate-500 dark:text-slate-400">แถว (สมาชิก 3 คน)</span>
             </div>
             <div className="mt-1 text-xs text-amber-800 dark:text-amber-400 font-medium truncate">
