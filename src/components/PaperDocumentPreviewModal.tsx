@@ -525,10 +525,9 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
   const isOtherDeviceChecked = record.DeviceType === 'Other';
 
   const autoCost = calculateEstimatedServiceCost(selectedServices);
-  const displayCost =
-    record.AdditionalDetails && record.AdditionalDetails.trim() !== ''
-      ? record.AdditionalDetails.replace(/\s*บาท\s*$/, '')
-      : String(autoCost);
+  // สกัดเฉพาะตัวเลขประเมินค่าใช้จ่าย ป้องกันคำว่า 'บาท' ติดซ้ำซ้อนบนกระดาษ A4
+  const costMatch = (record.AdditionalDetails || '').match(/\d+/);
+  const displayCost = costMatch ? costMatch[0] : String(autoCost);
 
   // แยกข้อมูลบริการอื่น ๆ และรายละเอียดเพิ่มเติมออกจากกันเพื่อพิมพ์บนเอกสาร A4 อย่างเป็นสัดส่วน
   let otherServiceDisplay = '—';

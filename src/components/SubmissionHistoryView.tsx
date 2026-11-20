@@ -9,12 +9,10 @@ import {
   FileSpreadsheet,
   Filter,
   FolderOpen,
-  Lock,
   Printer,
   RefreshCw,
   Search,
   Trash2,
-  Unlock,
   Users,
 } from 'lucide-react';
 import {
@@ -78,9 +76,9 @@ function formatOtherTextPreview(raw: string, hasOtherBadge: boolean, isDesktop =
 interface SubmissionHistoryViewProps {
   sheetsData: AllSheetsData;
   isLoading: boolean;
-  isAuthorized: boolean;
+  isAuthorized?: boolean;
   onRefresh: () => void;
-  onRequestAuthorization: (reason: string, callback: () => void) => void;
+  onRequestAuthorization?: (reason: string, callback: () => void) => void;
   onEditServiceRequest: (record: ServiceRequestRecord) => void;
   onEditWorkTimeRecord?: (
     sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3',
@@ -96,9 +94,7 @@ interface SubmissionHistoryViewProps {
 export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
   sheetsData,
   isLoading,
-  isAuthorized,
   onRefresh,
-  onRequestAuthorization,
   onEditServiceRequest,
   onEditWorkTimeRecord,
   onDeleteRecord,
@@ -109,6 +105,11 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
   const [dateFilter, setDateFilter] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<ServiceRequestRecord | null>(null);
   const [printReceiptRecord, setPrintReceiptRecord] = useState<ServiceRequestRecord | null>(null);
+  const [recordToEdit, setRecordToEdit] = useState<ServiceRequestRecord | null>(null);
+  const [workTimeToEdit, setWorkTimeToEdit] = useState<{
+    rec: AnyWorkTimeRecord;
+    sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3';
+  } | null>(null);
 
   // States สำหรับรายการบันทึกเวลาทำงาน (Work Time)
   const [selectedWorkRecord, setSelectedWorkRecord] = useState<{
@@ -156,26 +157,22 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
     rec: AnyWorkTimeRecord,
     sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3'
   ) => {
-    const doEdit = () => {
-      if (onEditWorkTimeRecord) {
-        onEditWorkTimeRecord(sheetKey, rec);
-      } else {
-        const tabMap: Record<string, NavigationTab> = {
-          GROUP_1: 'work-time-group-1',
-          GROUP_2: 'work-time-group-2',
-          GROUP_3: 'work-time-group-3',
-        };
-        onNavigate(tabMap[sheetKey]);
-      }
-    };
+    setWorkTimeToEdit({ rec, sheetKey });
+  };
 
-    if (isAuthorized) {
-      doEdit();
+  const handleDoEditWorkTime = (
+    rec: AnyWorkTimeRecord,
+    sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3'
+  ) => {
+    if (onEditWorkTimeRecord) {
+      onEditWorkTimeRecord(sheetKey, rec);
     } else {
-      onRequestAuthorization(
-        `ต้องการสิทธิ์เพื่อแก้ไขรายการบันทึกเวลาลำดับที่ #${rec.SequenceNo}`,
-        doEdit
-      );
+      const tabMap: Record<string, NavigationTab> = {
+        GROUP_1: 'work-time-group-1',
+        GROUP_2: 'work-time-group-2',
+        GROUP_3: 'work-time-group-3',
+      };
+      onNavigate(tabMap[sheetKey]);
     }
   };
 
@@ -309,27 +306,6 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon={
-                isAuthorized ? (
-                  <Unlock className="w-3.5 h-3.5 text-emerald-600" />
-                ) : (
-                  <Lock className="w-3.5 h-3.5 text-amber-600" />
-                )
-              }
-              onClick={() =>
-                onRequestAuthorization(
-                  'ปลดล็อกสิทธิ์ผู้ดูแลระบบเพื่อแก้ไขหรือลบข้อมูลในประวัติการส่งฟอร์ม',
-                  () => {}
-                )
-              }
-            >
-              {isAuthorized ? 'สิทธิ์เจ้าหน้าที่: ปลดล็อกแล้ว' : 'ปลดล็อกแก้ไข/ลบ'}
-            </Button>
-
             <Button
               type="button"
               variant="outline"
@@ -574,16 +550,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (isAuthorized) {
-                              onEditServiceRequest(rec);
-                            } else {
-                              onRequestAuthorization(
-                                `ต้องการสิทธิ์เพื่อแก้ไขใบคำขอรับบริการ ${rec.ReceiptNumber}`,
-                                () => onEditServiceRequest(rec)
-                              );
-                            }
-                          }}
+                          onClick={() => setRecordToEdit(rec)}
                           title="แก้ไขข้อมูล"
                           aria-label={`แก้ไขใบรับบริการ ${rec.ReceiptNumber}`}
                           className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition active:scale-95"
@@ -592,22 +559,13 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            const openDel = () =>
-                              setDeleteTarget({
-                                sheetKey: 'REQUESTS',
-                                recordId: rec.RecordID,
-                                label: `ใบรับบริการเลขที่ ${rec.ReceiptNumber} (${rec.FullName})`,
-                              });
-                            if (isAuthorized) {
-                              openDel();
-                            } else {
-                              onRequestAuthorization(
-                                `ต้องการสิทธิ์เพื่อลบใบคำขอรับบริการ ${rec.ReceiptNumber}`,
-                                openDel
-                              );
-                            }
-                          }}
+                          onClick={() =>
+                            setDeleteTarget({
+                              sheetKey: 'REQUESTS',
+                              recordId: rec.RecordID,
+                              label: `ใบรับบริการเลขที่ ${rec.ReceiptNumber} (${rec.FullName})`,
+                            })
+                          }
                           title="ลบรายการ"
                           aria-label={`ลบใบรับบริการ ${rec.ReceiptNumber}`}
                           className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition active:scale-95"
@@ -726,16 +684,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (isAuthorized) {
-                                    onEditServiceRequest(rec);
-                                  } else {
-                                    onRequestAuthorization(
-                                      `ต้องการสิทธิ์เพื่อแก้ไขใบคำขอรับบริการ ${rec.ReceiptNumber}`,
-                                      () => onEditServiceRequest(rec)
-                                    );
-                                  }
-                                }}
+                                onClick={() => setRecordToEdit(rec)}
                                 title="แก้ไขข้อมูล"
                                 aria-label={`แก้ไขใบรับบริการ ${rec.ReceiptNumber}`}
                                 className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition"
@@ -744,22 +693,13 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const openDel = () =>
-                                    setDeleteTarget({
-                                      sheetKey: 'REQUESTS',
-                                      recordId: rec.RecordID,
-                                      label: `ใบรับบริการเลขที่ ${rec.ReceiptNumber} (${rec.FullName})`,
-                                    });
-                                  if (isAuthorized) {
-                                    openDel();
-                                  } else {
-                                    onRequestAuthorization(
-                                      `ต้องการสิทธิ์เพื่อลบใบคำขอรับบริการ ${rec.ReceiptNumber}`,
-                                      openDel
-                                    );
-                                  }
-                                }}
+                                onClick={() =>
+                                  setDeleteTarget({
+                                    sheetKey: 'REQUESTS',
+                                    recordId: rec.RecordID,
+                                    label: `ใบรับบริการเลขที่ ${rec.ReceiptNumber} (${rec.FullName})`,
+                                  })
+                                }
                                 title="ลบรายการ"
                                 aria-label={`ลบใบรับบริการ ${rec.ReceiptNumber}`}
                                 className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition"
@@ -954,22 +894,13 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                           type="button"
                           title="ลบรายการ"
                           aria-label={`ลบรายการแถวที่ #${rec.SequenceNo || idx + 1}`}
-                          onClick={() => {
-                            const openDel = () =>
-                              setDeleteTarget({
-                                sheetKey: activeSheet,
-                                recordId: rec.RecordID,
-                                label: `${WORKSHEET_LABELS_TH[activeSheet]} แถวที่ #${rec.SequenceNo}`,
-                              });
-                            if (isAuthorized) {
-                              openDel();
-                            } else {
-                              onRequestAuthorization(
-                                'ต้องการสิทธิ์เพื่อลบรายการบันทึกเวลาปฏิบัติงาน',
-                                openDel
-                              );
-                            }
-                          }}
+                          onClick={() =>
+                            setDeleteTarget({
+                              sheetKey: activeSheet,
+                              recordId: rec.RecordID,
+                              label: `${WORKSHEET_LABELS_TH[activeSheet]} แถวที่ #${rec.SequenceNo}`,
+                            })
+                          }
                           className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition active:scale-95"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1088,22 +1019,13 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                 type="button"
                                 title="ลบรายการ"
                                 aria-label={`ลบรายการแถวที่ #${rec.SequenceNo || idx + 1}`}
-                                onClick={() => {
-                                  const openDel = () =>
-                                    setDeleteTarget({
-                                      sheetKey: activeSheet,
-                                      recordId: rec.RecordID,
-                                      label: `${WORKSHEET_LABELS_TH[activeSheet]} แถวที่ #${rec.SequenceNo}`,
-                                    });
-                                  if (isAuthorized) {
-                                    openDel();
-                                  } else {
-                                    onRequestAuthorization(
-                                      'ต้องการสิทธิ์เพื่อลบรายการบันทึกเวลาปฏิบัติงาน',
-                                      openDel
-                                    );
-                                  }
-                                }}
+                                onClick={() =>
+                                  setDeleteTarget({
+                                    sheetKey: activeSheet,
+                                    recordId: rec.RecordID,
+                                    label: `${WORKSHEET_LABELS_TH[activeSheet]} แถวที่ #${rec.SequenceNo}`,
+                                  })
+                                }
                                 className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition active:scale-95"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -1190,20 +1112,11 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                   const rec = selectedWorkRecord.record;
                   const sk = selectedWorkRecord.sheetKey;
                   setSelectedWorkRecord(null);
-                  const openDel = () =>
-                    setDeleteTarget({
-                      sheetKey: sk,
-                      recordId: rec.RecordID,
-                      label: `${WORKSHEET_LABELS_TH[sk]} แถวที่ #${rec.SequenceNo}`,
-                    });
-                  if (isAuthorized) {
-                    openDel();
-                  } else {
-                    onRequestAuthorization(
-                      'ต้องการสิทธิ์เพื่อลบรายการบันทึกเวลาปฏิบัติงาน',
-                      openDel
-                    );
-                  }
+                  setDeleteTarget({
+                    sheetKey: sk,
+                    recordId: rec.RecordID,
+                    label: `${WORKSHEET_LABELS_TH[sk]} แถวที่ #${rec.SequenceNo}`,
+                  });
                 }}
               >
                 ลบรายการ
@@ -1349,10 +1262,59 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
         title="ยืนยันการลบข้อมูลออกจากระบบ"
         description={`คุณต้องการลบรายการ "${deleteTarget?.label}" ใช่หรือไม่? การดำเนินการนี้จะลบข้อมูลออกจากแผ่นงาน Google Sheets ด้วย`}
         confirmLabel="ยืนยันการลบถาวร"
+        cancelLabel="ยกเลิก"
         variant="danger"
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      {/* หน้าต่างยืนยันการเปิดแก้ไขข้อมูลใบรับบริการ */}
+      <ConfirmDialog
+        isOpen={Boolean(recordToEdit)}
+        title="ยืนยันการเปิดแก้ไขข้อมูล"
+        description={`คุณต้องการเปิดแบบฟอร์มเพื่อแก้ไขข้อมูลใบรับบริการเลขที่ "${recordToEdit?.ReceiptNumber}" (${recordToEdit?.FullName}) ใช่หรือไม่?`}
+        confirmLabel="ยืนยันเปิดแก้ไข"
+        cancelLabel="ยกเลิก"
+        variant="primary"
+        details={
+          recordToEdit
+            ? [
+                { label: 'เลขที่เอกสาร', value: recordToEdit.ReceiptNumber },
+                { label: 'ผู้รับบริการ', value: recordToEdit.FullName },
+                {
+                  label: 'อุปกรณ์',
+                  value: `${getDeviceTypeThaiLabel(recordToEdit.DeviceType)} ${recordToEdit.DeviceBrandModel || ''}`.trim(),
+                },
+                { label: 'วันที่รับเรื่อง', value: formatDisplayDate(recordToEdit.Date) },
+              ]
+            : undefined
+        }
+        onConfirm={() => {
+          if (recordToEdit) {
+            onEditServiceRequest(recordToEdit);
+            setRecordToEdit(null);
+          }
+        }}
+        onCancel={() => setRecordToEdit(null)}
+      />
+
+      {/* หน้าต่างยืนยันการเปิดแก้ไขบันทึกเวลาปฏิบัติงาน */}
+      <ConfirmDialog
+        isOpen={Boolean(workTimeToEdit)}
+        title="ยืนยันการเปิดแก้ไขบันทึกเวลาทำงาน"
+        description={`คุณต้องการเปิดแบบฟอร์มเพื่อแก้ไขบันทึกการลงเวลาทำงาน ลำดับที่ #${workTimeToEdit?.rec.SequenceNo} วันที่ ${formatDisplayDate(workTimeToEdit?.rec.Date || '')} ใช่หรือไม่?`}
+        confirmLabel="ยืนยันเปิดแก้ไข"
+        cancelLabel="ยกเลิก"
+        variant="primary"
+        onConfirm={() => {
+          if (workTimeToEdit) {
+            const { rec, sheetKey } = workTimeToEdit;
+            setWorkTimeToEdit(null);
+            handleDoEditWorkTime(rec, sheetKey);
+          }
+        }}
+        onCancel={() => setWorkTimeToEdit(null)}
       />
     </div>
   );

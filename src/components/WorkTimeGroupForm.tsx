@@ -13,7 +13,6 @@ import {
   Printer,
   Save,
   Trash2,
-  Unlock,
   Users,
 } from 'lucide-react';
 import {
@@ -45,8 +44,8 @@ interface WorkTimeGroupFormProps {
   records: AnyWorkTimeRecord[];
   initialEditingRecord?: AnyWorkTimeRecord | null;
   onCancelEdit?: () => void;
-  isAuthorized: boolean;
-  onRequestAuthorization: (reason: string, callback: () => void) => void;
+  isAuthorized?: boolean;
+  onRequestAuthorization?: (reason: string, callback: () => void) => void;
   onSaveWorkRecord: (
     sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3',
     record: AnyWorkTimeRecord,
@@ -64,8 +63,6 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   records,
   initialEditingRecord,
   onCancelEdit,
-  isAuthorized,
-  onRequestAuthorization,
   onSaveWorkRecord,
   onDeleteWorkRecord,
   onBackToDashboard,
@@ -111,6 +108,9 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   const [printWorkPayload, setPrintWorkPayload] = useState<PaperPreviewPayload | null>(null);
   const [previewModalPayload, setPreviewModalPayload] = useState<PaperPreviewPayload | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<AnyWorkTimeRecord | null>(null);
+  const [recordToEdit, setRecordToEdit] = useState<AnyWorkTimeRecord | null>(null);
+  const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
+  const [isConfirmCancelEditOpen, setIsConfirmCancelEditOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
   const [feedback, setFeedback] = useState<{
@@ -216,60 +216,46 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
     }
   };
 
-  const startEditingRow = (rec: AnyWorkTimeRecord) => {
-    const doEdit = () => {
-      setEditingRecord(rec);
-      setDate(rec.Date ? rec.Date.split('T')[0] : getCurrentDateISO());
-      setWorkStartTime(rec.WorkStartTime ? rec.WorkStartTime.slice(0, 5) : '08:30');
-      setWorkEndTime(rec.WorkEndTime ? rec.WorkEndTime.slice(0, 5) : '17:30');
-      setRemarks(rec.Remarks || '');
+  const executeDoEdit = (rec: AnyWorkTimeRecord) => {
+    setEditingRecord(rec);
+    setDate(rec.Date ? rec.Date.split('T')[0] : getCurrentDateISO());
+    setWorkStartTime(rec.WorkStartTime ? rec.WorkStartTime.slice(0, 5) : '08:30');
+    setWorkEndTime(rec.WorkEndTime ? rec.WorkEndTime.slice(0, 5) : '17:30');
+    setRemarks(rec.Remarks || '');
 
-      if (memberCount === 2) {
-        const r1 = rec as WorkTimeGroup1Record;
-        setMemberNames([
-          groupConfig.defaultMembers[0],
-          groupConfig.defaultMembers[1],
-        ]);
-        const p1 = parseSigAndStatus(r1.Member1Signature);
-        const p2 = parseSigAndStatus(r1.Member2Signature);
-        setMemberSignatures([p1.sig, p2.sig]);
-        setMemberStatuses([p1.status, p2.status]);
-      } else {
-        const r3 = rec as WorkTimeGroup2Or3Record;
-        setMemberNames([
-          groupConfig.defaultMembers[0],
-          groupConfig.defaultMembers[1],
-          groupConfig.defaultMembers[2] || '',
-        ]);
-        const p1 = parseSigAndStatus(r3.Member1Signature);
-        const p2 = parseSigAndStatus(r3.Member2Signature);
-        const p3 = parseSigAndStatus(r3.Member3Signature);
-        setMemberSignatures([p1.sig, p2.sig, p3.sig]);
-        setMemberStatuses([p1.status, p2.status, p3.status]);
-      }
-      setErrors({});
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    if (isAuthorized) {
-      doEdit();
+    if (memberCount === 2) {
+      const r1 = rec as WorkTimeGroup1Record;
+      setMemberNames([
+        groupConfig.defaultMembers[0],
+        groupConfig.defaultMembers[1],
+      ]);
+      const p1 = parseSigAndStatus(r1.Member1Signature);
+      const p2 = parseSigAndStatus(r1.Member2Signature);
+      setMemberSignatures([p1.sig, p2.sig]);
+      setMemberStatuses([p1.status, p2.status]);
     } else {
-      onRequestAuthorization(
-        `ต้องการสิทธิ์เพื่อแก้ไขรายการลำดับที่ #${rec.SequenceNo} ในแผ่นงาน ${worksheetName}`,
-        doEdit
-      );
+      const r3 = rec as WorkTimeGroup2Or3Record;
+      setMemberNames([
+        groupConfig.defaultMembers[0],
+        groupConfig.defaultMembers[1],
+        groupConfig.defaultMembers[2] || '',
+      ]);
+      const p1 = parseSigAndStatus(r3.Member1Signature);
+      const p2 = parseSigAndStatus(r3.Member2Signature);
+      const p3 = parseSigAndStatus(r3.Member3Signature);
+      setMemberSignatures([p1.sig, p2.sig, p3.sig]);
+      setMemberStatuses([p1.status, p2.status, p3.status]);
     }
+    setErrors({});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const startEditingRow = (rec: AnyWorkTimeRecord) => {
+    setRecordToEdit(rec);
   };
 
   const requestDeleteRow = (rec: AnyWorkTimeRecord) => {
-    if (isAuthorized) {
-      setRecordToDelete(rec);
-    } else {
-      onRequestAuthorization(
-        `ต้องการสิทธิ์เพื่อลบรายการลำดับที่ #${rec.SequenceNo} จากแผ่นงาน ${worksheetName}`,
-        () => setRecordToDelete(rec)
-      );
-    }
+    setRecordToDelete(rec);
   };
 
   const validateEntry = (): boolean => {
@@ -350,8 +336,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       toast.error('กรุณากรอกวันที่ เวลาเริ่ม-เลิกงาน และลงลายมือชื่อให้ครบถ้วน');
       return;
     }
-    const draft = buildDraftWorkTimeRecord();
-    await executeSaveWorkRecord(draft, false);
+    // แสดงหน้าต่างยืนยันก่อนบันทึกเวลาปฏิบัติงาน
+    setIsConfirmSubmitOpen(true);
   };
 
   const handlePrintPreview = () => {
@@ -729,13 +715,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      setEditingRecord(null);
-                      setRemarks('');
-                      setMemberSignatures(Array(memberCount).fill(''));
-                      setMemberStatuses(Array(memberCount).fill('present'));
-                      if (onCancelEdit) onCancelEdit();
-                    }}
+                    onClick={() => setIsConfirmCancelEditOpen(true)}
                     className="w-full sm:w-auto"
                   >
                     ยกเลิกการแก้ไข
@@ -797,27 +777,6 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon={
-                isAuthorized ? (
-                  <Unlock className="w-3.5 h-3.5 text-emerald-600" />
-                ) : (
-                  <Lock className="w-3.5 h-3.5 text-amber-600" />
-                )
-              }
-              onClick={() =>
-                onRequestAuthorization(
-                  'ปลดล็อกสิทธิ์การแก้ไขและลบข้อมูลในตารางบันทึกเวลาปฏิบัติงาน',
-                  () => {}
-                )
-              }
-            >
-              {isAuthorized ? 'ปลดล็อกแก้ไข/ลบแล้ว' : 'ปลดล็อกแก้ไข/ลบ'}
-            </Button>
-
             <Button
               type="button"
               variant="outline"
@@ -1260,10 +1219,74 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         title="ยืนยันการลบข้อมูลเวลาปฏิบัติงาน"
         description={`คุณแน่ใจหรือไม่ว่าต้องการลบรายการลำดับที่ #${recordToDelete?.SequenceNo} ออกจากแผ่นงาน "${worksheetName}" อย่างถาวร?`}
         confirmLabel="ยืนยันการลบข้อมูล"
+        cancelLabel="ยกเลิก"
         variant="danger"
         isLoading={isSubmitting}
         onConfirm={handleConfirmDelete}
         onCancel={() => setRecordToDelete(null)}
+      />
+
+      {/* หน้าต่างยืนยันการบันทึกเวลาปฏิบัติงาน */}
+      <ConfirmDialog
+        isOpen={isConfirmSubmitOpen}
+        title={editingRecord ? 'ยืนยันการบันทึกการแก้ไขเวลาปฏิบัติงาน' : 'ยืนยันการบันทึกเวลาปฏิบัติงาน'}
+        description={
+          editingRecord
+            ? `คุณต้องการบันทึกการแก้ไขเวลาปฏิบัติงาน ลำดับที่ #${editingRecord.SequenceNo} (${dayTechnicianLabel}) ใช่หรือไม่?`
+            : `คุณต้องการบันทึกเวลาปฏิบัติงานประจำวัน (${dayTechnicianLabel}) วันที่ ${formatDisplayDate(date)} ใช่หรือไม่?`
+        }
+        confirmLabel={editingRecord ? 'ยืนยันบันทึกการแก้ไข' : 'ยืนยันบันทึกข้อมูล'}
+        cancelLabel="กลับไปตรวจสอบ"
+        variant={editingRecord ? 'primary' : 'success'}
+        isLoading={isSubmitting}
+        details={[
+          { label: 'กลุ่มช่าง', value: dayTechnicianLabel },
+          { label: 'วันที่ปฏิบัติงาน', value: formatDisplayDate(date) },
+          { label: 'เวลาเริ่ม–เลิกงาน', value: `${workStartTime} - ${workEndTime} น.` },
+          { label: 'ผู้ปฏิบัติงาน', value: memberNames.filter(Boolean).join(', ') },
+        ]}
+        onConfirm={async () => {
+          setIsConfirmSubmitOpen(false);
+          const draft = buildDraftWorkTimeRecord();
+          await executeSaveWorkRecord(draft, false);
+        }}
+        onCancel={() => setIsConfirmSubmitOpen(false)}
+      />
+
+      {/* หน้าต่างยืนยันการเปิดแก้ไขบันทึกเวลาปฏิบัติงาน */}
+      <ConfirmDialog
+        isOpen={Boolean(recordToEdit)}
+        title="ยืนยันการเปิดแก้ไขข้อมูลลงเวลา"
+        description={`คุณต้องการเปิดแบบฟอร์มเพื่อแก้ไขข้อมูลเวลาปฏิบัติงาน ลำดับที่ #${recordToEdit?.SequenceNo} วันที่ ${formatDisplayDate(recordToEdit?.Date || '')} ใช่หรือไม่?`}
+        confirmLabel="ยืนยันเปิดแก้ไข"
+        cancelLabel="ยกเลิก"
+        variant="primary"
+        onConfirm={() => {
+          if (recordToEdit) {
+            executeDoEdit(recordToEdit);
+            setRecordToEdit(null);
+          }
+        }}
+        onCancel={() => setRecordToEdit(null)}
+      />
+
+      {/* หน้าต่างยืนยันการยกเลิกการแก้ไข */}
+      <ConfirmDialog
+        isOpen={isConfirmCancelEditOpen}
+        title="ยืนยันการยกเลิกการแก้ไข"
+        description="คุณต้องการยกเลิกการแก้ไขและกลับสู่หน้าแบบฟอร์มปกติใช่หรือไม่? ข้อมูลที่แก้ไขจะถูกรีเซ็ต"
+        confirmLabel="ยืนยันยกเลิก"
+        cancelLabel="แก้ไขต่อ"
+        variant="danger"
+        onConfirm={() => {
+          setIsConfirmCancelEditOpen(false);
+          setEditingRecord(null);
+          setRemarks('');
+          setMemberSignatures(Array(memberCount).fill(''));
+          setMemberStatuses(Array(memberCount).fill('present'));
+          if (onCancelEdit) onCancelEdit();
+        }}
+        onCancel={() => setIsConfirmCancelEditOpen(false)}
       />
     </div>
   );

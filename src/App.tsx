@@ -4,12 +4,10 @@ import {
   Database,
   FolderKanban,
   LayoutDashboard,
-  Lock,
   Menu,
   Moon,
   ShieldCheck,
   Sun,
-  Unlock,
   Wrench,
 } from 'lucide-react';
 import {
@@ -34,7 +32,6 @@ import { ServiceRequestForm } from './components/ServiceRequestForm';
 import { WorkTimeGroupForm } from './components/WorkTimeGroupForm';
 import { SubmissionHistoryView } from './components/SubmissionHistoryView';
 import { GoogleSheetsSetupView } from './components/GoogleSheetsSetupView';
-import { AuthorizationModal } from './components/AuthorizationModal';
 import { Badge, Drawer, RunningDots, ToastContainer } from './components/ui/DesignSystem';
 
 export function App() {
@@ -55,17 +52,6 @@ export function App() {
     sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3';
     record: AnyWorkTimeRecord;
   } | null>(null);
-
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const [authModalState, setAuthModalState] = useState<{
-    isOpen: boolean;
-    reason: string;
-    callback: (() => void) | null;
-  }>({
-    isOpen: false,
-    reason: '',
-    callback: null,
-  });
 
   useEffect(() => {
     const root = document.documentElement;
@@ -98,18 +84,6 @@ export function App() {
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
-
-  const handleRequestAuthorization = (reason: string, callback: () => void) => {
-    if (isAuthorized) {
-      callback();
-      return;
-    }
-    setAuthModalState({
-      isOpen: true,
-      reason,
-      callback,
-    });
-  };
 
   const handleSaveServiceRequest = async (
     record: ServiceRequestRecord,
@@ -308,41 +282,6 @@ export function App() {
                 </span>
               </button>
 
-              {/* ปุ่มสลับสิทธิ์เจ้าหน้าที่ */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (isAuthorized) {
-                    setIsAuthorized(false);
-                  } else {
-                    handleRequestAuthorization(
-                      'กรุณากรอกรหัสผ่านเจ้าหน้าที่ (PIN) เพื่อปลดล็อกการแก้ไขและลบข้อมูล',
-                      () => {}
-                    );
-                  }
-                }}
-                title={
-                  isAuthorized
-                    ? 'คลิกเพื่อออกจากโหมดเจ้าหน้าที่'
-                    : 'สำหรับเจ้าหน้าที่: คลิกเพื่อปลดล็อกการแก้ไขและลบข้อมูล'
-                }
-                aria-label={isAuthorized ? 'โหมดเจ้าหน้าที่ (คลิกเพื่อล็อก)' : 'สำหรับเจ้าหน้าที่ (คลิกเพื่อปลดล็อกการแก้ไข)'}
-                className={`min-h-[40px] min-w-[40px] px-3 py-2 rounded-xl border text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-                  isAuthorized
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                {isAuthorized ? (
-                  <Unlock className="w-4 h-4 shrink-0" aria-hidden="true" />
-                ) : (
-                  <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
-                )}
-                <span className="hidden sm:inline">
-                  {isAuthorized ? 'โหมดเจ้าหน้าที่' : 'สำหรับเจ้าหน้าที่'}
-                </span>
-              </button>
-
               {/* ปุ่มสลับโหมดสว่าง / โหมดมืด */}
               <button
                 type="button"
@@ -395,36 +334,9 @@ export function App() {
             <div className="flex items-center justify-between gap-2.5">
               <button
                 type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (isAuthorized) {
-                    setIsAuthorized(false);
-                  } else {
-                    handleRequestAuthorization(
-                      'ยืนยันรหัสผ่านเพื่อปลดล็อกสิทธิ์การแก้ไขและลบข้อมูล',
-                      () => {}
-                    );
-                  }
-                }}
-                className={`flex-1 min-h-[46px] px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-                  isAuthorized
-                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
-                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
-              >
-                {isAuthorized ? (
-                  <Unlock className="w-4 h-4 shrink-0" aria-hidden="true" />
-                ) : (
-                  <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
-                )}
-                <span>{isAuthorized ? 'โหมดเจ้าหน้าที่ (ปลดล็อกแล้ว)' : 'ปลดล็อกโหมดเจ้าหน้าที่'}</span>
-              </button>
-
-              <button
-                type="button"
                 onClick={() => setDarkMode((prev) => !prev)}
                 aria-label={darkMode ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
-                className="min-h-[46px] px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 inline-flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                className="w-full min-h-[46px] px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 inline-flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
               >
                 {darkMode ? (
                   <>
@@ -584,8 +496,6 @@ export function App() {
                 : null
             }
             onCancelEdit={() => setEditingWorkTimeRecord(null)}
-            isAuthorized={isAuthorized}
-            onRequestAuthorization={handleRequestAuthorization}
             onSaveWorkRecord={handleSaveWorkTimeRecord}
             onDeleteWorkRecord={handleDeleteRecord}
             onBackToDashboard={() => {
@@ -605,8 +515,6 @@ export function App() {
                 : null
             }
             onCancelEdit={() => setEditingWorkTimeRecord(null)}
-            isAuthorized={isAuthorized}
-            onRequestAuthorization={handleRequestAuthorization}
             onSaveWorkRecord={handleSaveWorkTimeRecord}
             onDeleteWorkRecord={handleDeleteRecord}
             onBackToDashboard={() => {
@@ -626,8 +534,6 @@ export function App() {
                 : null
             }
             onCancelEdit={() => setEditingWorkTimeRecord(null)}
-            isAuthorized={isAuthorized}
-            onRequestAuthorization={handleRequestAuthorization}
             onSaveWorkRecord={handleSaveWorkTimeRecord}
             onDeleteWorkRecord={handleDeleteRecord}
             onBackToDashboard={() => {
@@ -641,9 +547,7 @@ export function App() {
           <SubmissionHistoryView
             sheetsData={sheetsData}
             isLoading={isLoading}
-            isAuthorized={isAuthorized}
             onRefresh={loadSheetsData}
-            onRequestAuthorization={handleRequestAuthorization}
             onEditServiceRequest={(rec) => {
               setEditingServiceRequest(rec);
               handleNavigate('service-request');
@@ -692,18 +596,6 @@ export function App() {
         </div>
       </footer>
 
-      {/* หน้าต่างยืนยันรหัสผ่านเจ้าหน้าที่ */}
-      <AuthorizationModal
-        isOpen={authModalState.isOpen}
-        actionDescription={authModalState.reason}
-        onClose={() => setAuthModalState({ isOpen: false, reason: '', callback: null })}
-        onAuthorized={() => {
-          setIsAuthorized(true);
-          if (authModalState.callback) {
-            authModalState.callback();
-          }
-        }}
-      />
       {/* ระบบแจ้งเตือนลอยตัว Toast Feedback ทั่วทั้งระบบ */}
       <ToastContainer />
     </div>

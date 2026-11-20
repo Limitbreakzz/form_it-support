@@ -22,16 +22,19 @@ import {
   DEVICE_TYPE_LABELS_TH,
   DeviceType,
   getAllTechnicians,
+  getDeviceTypeThaiLabel,
   SERVICE_CATALOG,
   ServiceRequestRecord,
 } from '../types';
 import {
+  formatDisplayDate,
   generateRecordId,
   generateUniqueReceiptNumber,
   getCurrentDateISO,
   getCurrentTime24,
   parseServicesList,
 } from '../utils/formatters';
+import { ConfirmDialog } from './ConfirmDialog';
 import {
   PaperDocumentPreviewModal,
   PaperPreviewPayload,
@@ -112,6 +115,8 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
   const [previewModalPayload, setPreviewModalPayload] = useState<PaperPreviewPayload | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
+  const [isConfirmSubmitOpen, setIsConfirmSubmitOpen] = useState(false);
+  const [isConfirmCancelEditOpen, setIsConfirmCancelEditOpen] = useState(false);
   const [submittedReceiptRecord, setSubmittedReceiptRecord] =
     useState<ServiceRequestRecord | null>(null);
   const [bannerFeedback, setBannerFeedback] = useState<{
@@ -143,7 +148,10 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       }
       setDeviceSerialNumber(editingRecord.DeviceSerialNumber || '');
       setProblemDescription(editingRecord.ProblemDescription);
-      setEstimatedCost(editingRecord.AdditionalDetails || '');
+      // ดึงเฉพาะตัวเลขจาก AdditionalDetails เพื่อให้ช่องแก้ไขรับเฉพาะตัวเลข และไม่สะสมคำว่า 'บาท' ซ้ำซ้อน
+      const rawCost = editingRecord.AdditionalDetails || '';
+      const costMatch = rawCost.match(/\d+/);
+      setEstimatedCost(costMatch ? costMatch[0] : '');
 
       const parsedServices = parseServicesList(editingRecord.RequestedServices);
       // กรอง 'Other' ออกจาก selectedServices เสมอ เพื่อให้ selectedServices มีเฉพาะ 10 รายการในแคตตาล็อก
@@ -269,9 +277,10 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       finalServices.push('Other');
     }
 
+    const cleanCostNum = estimatedCost.replace(/[^0-9]/g, '').trim();
     const computedCost =
-      estimatedCost.trim() !== ''
-        ? `${estimatedCost.trim()} บาท`
+      cleanCostNum !== ''
+        ? `${cleanCostNum} บาท`
         : `${calculateEstimatedServiceCost(finalServices)} บาท`;
 
     const cleanPhone = phoneNumber.trim().replace(/^'+/, '');
@@ -318,8 +327,8 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       toast.error('กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน');
       return;
     }
-    const draft = buildCurrentDraftRecord();
-    await executeSaveRecord(draft, false);
+    // แสดงหน้าต่างยืนยันก่อนบันทึกข้อมูลทุกครั้ง
+    setIsConfirmSubmitOpen(true);
   };
 
   const handlePrintPreview = () => {
@@ -940,10 +949,14 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                         name="estimatedCost"
                         type="text"
                         inputMode="numeric"
+                        pattern="[0-9]*"
                         value={estimatedCost}
-                        onChange={(e) => setEstimatedCost(e.target.value)}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/[^0-9]/g, '');
+                          setEstimatedCost(digitsOnly);
+                        }}
                         placeholder="คำนวณอัตโนมัติ"
-                        helperText="หน่วยเป็นบาท ระบบรวมให้หรือแก้ไขได้"
+                        helperText="ระบุเฉพาะตัวเลข (หน่วยเป็นบาท)"
                         className="font-mono font-bold text-blue-700 dark:text-blue-400 tabular-nums-thai"
                       />
                     </div>
@@ -1014,7 +1027,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={onCancelEdit}
+                    onClick={() => setIsConfirmCancelEditOpen(true)}
                     className="w-full sm:w-auto"
                   >
                     ยกเลิกการแก้ไข
@@ -1073,6 +1086,57 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
               }
             : null)
         }
+      />
+
+      {/* หน้าต่างยืนยันการบันทึกข้อมูล */}
+      <ConfirmDialog
+        isOpen={isConfirmSubmitOpen}
+        title={editingRecord ? 'ยืนยันการบันทึกการแก้ไขข้อมูล' : 'ยืนยันการบันทึกข้อมูลและออกใบรับบริการ'}
+        description={
+          editingRecord
+            ? `คุณต้องการบันทึกการแก้ไขข้อมูลใบรับบริการเลขที่ "${receiptNumber}" ใช่หรือไม่?`
+            : `คุณต้องการบันทึกข้อมูลและออกใบรับบริการใหม่สำหรับคุณ "${fullName || 'ผู้รับบริการ'}" ใช่หรือไม่?`
+        }
+        confirmLabel={editingRecord ? 'ยืนยันบันทึกการแก้ไข' : 'ยืนยันบันทึกข้อมูล'}
+        cancelLabel="กลับไปตรวจสอบ"
+        variant={editingRecord ? 'primary' : 'success'}
+        isLoading={isSubmitting}
+        details={[
+          { label: 'เลขที่เอกสาร', value: receiptNumber || '-' },
+          { label: 'วันที่รับเรื่อง', value: `${formatDisplayDate(date)} เวลา ${time} น.` },
+          { label: 'ผู้รับบริการ', value: fullName || '-' },
+          { label: 'เบอร์ติดต่อ', value: phoneNumber || '-' },
+          {
+            label: 'ประเภทอุปกรณ์',
+            value: `${getDeviceTypeThaiLabel(deviceType as DeviceType)} ${deviceBrandModel || ''}`.trim(),
+          },
+          {
+            label: 'ประเมินค่าใช้จ่าย',
+            value: `${estimatedCost || calculateEstimatedServiceCost(selectedServices)} บาท`,
+          },
+          { label: 'ช่างผู้รับเรื่อง', value: receiverName || '-' },
+        ]}
+        onConfirm={async () => {
+          setIsConfirmSubmitOpen(false);
+          const draft = buildCurrentDraftRecord();
+          await executeSaveRecord(draft, false);
+        }}
+        onCancel={() => setIsConfirmSubmitOpen(false)}
+      />
+
+      {/* หน้าต่างยืนยันการยกเลิกการแก้ไข */}
+      <ConfirmDialog
+        isOpen={isConfirmCancelEditOpen}
+        title="ยืนยันการยกเลิกการแก้ไข"
+        description="คุณต้องการยกเลิกการแก้ไขและกลับสู่หน้าแบบฟอร์มปกติใช่หรือไม่? การแก้ไขที่ยังไม่ได้บันทึกจะถูกยกเลิก"
+        confirmLabel="ยืนยันยกเลิก"
+        cancelLabel="แก้ไขต่อ"
+        variant="danger"
+        onConfirm={() => {
+          setIsConfirmCancelEditOpen(false);
+          if (onCancelEdit) onCancelEdit();
+        }}
+        onCancel={() => setIsConfirmCancelEditOpen(false)}
       />
     </div>
   );
