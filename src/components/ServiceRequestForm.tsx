@@ -32,7 +32,11 @@ import {
   getCurrentTime24,
   parseServicesList,
 } from '../utils/formatters';
-import { PrintDocumentPortal } from './PaperDocumentPreviewModal';
+import {
+  PaperDocumentPreviewModal,
+  PaperPreviewPayload,
+  PrintDocumentPortal,
+} from './PaperDocumentPreviewModal';
 import {
   Badge,
   Button,
@@ -104,6 +108,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [printRecord, setPrintRecord] = useState<ServiceRequestRecord | null>(null);
+  const [previewModalPayload, setPreviewModalPayload] = useState<PaperPreviewPayload | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
   const [submittedReceiptRecord, setSubmittedReceiptRecord] =
@@ -274,9 +279,11 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     }
     const draft = buildCurrentDraftRecord();
     setPrintRecord(draft);
-    setTimeout(() => {
-      window.print();
-    }, 60);
+    setPreviewModalPayload({
+      type: 'service-request',
+      record: draft,
+      isEdit: Boolean(editingRecord),
+    });
   };
 
   const executeSaveRecord = async (
@@ -324,8 +331,11 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
           action: {
             label: 'พิมพ์ใบรับบริการ (A4)',
             onClick: () => {
-              setPrintRecord(recordToSave);
-              setTimeout(() => window.print(), 60);
+              setPreviewModalPayload({
+                type: 'service-request',
+                record: recordToSave,
+                isEdit: Boolean(editingRecord),
+              });
             },
           },
         }
@@ -410,10 +420,11 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
               size="sm"
               icon={<Printer className="w-3.5 h-3.5" />}
               onClick={() => {
-                setPrintRecord(submittedReceiptRecord);
-                setTimeout(() => {
-                  window.print();
-                }, 60);
+                setPreviewModalPayload({
+                  type: 'service-request',
+                  record: submittedReceiptRecord,
+                  isEdit: Boolean(editingRecord),
+                });
               }}
             >
               พิมพ์ใบรับบริการ (A4)
@@ -974,16 +985,25 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         </Card>
       </form>
 
+      {/* หน้าต่างแสดงตัวอย่างเอกสารขนาด A4 เสมือนจริงบนหน้าจอ (Responsive A4 Modal) */}
+      <PaperDocumentPreviewModal
+        isOpen={Boolean(previewModalPayload)}
+        mode="view-only"
+        payload={previewModalPayload}
+        onCancel={() => setPreviewModalPayload(null)}
+      />
+
       {/* พอร์ทัลเอกสาร A4 ซ่อนบนหน้าจอแสดงผล 100% แต่จะแสดงเฉพาะขณะเรียก window.print() เท่านั้น */}
       <PrintDocumentPortal
         payload={
-          printRecord
+          previewModalPayload ||
+          (printRecord
             ? {
                 type: 'service-request',
                 record: printRecord,
                 isEdit: Boolean(editingRecord),
               }
-            : null
+            : null)
         }
       />
     </div>

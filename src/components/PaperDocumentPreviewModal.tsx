@@ -78,6 +78,12 @@ export const PaperDocumentPreviewModal: React.FC<PaperDocumentPreviewModalProps>
   const sheetRef = React.useRef<HTMLElement | null>(null);
   const hasAutoPrintedRef = React.useRef(false);
 
+  const isInAppBrowser = (() => {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    return /FBAN|FBAV|Line|Instagram|Twitter|MicroMessenger/i.test(ua);
+  })();
+
   // คำนวณอัตราส่วนการย่อขยายหน้ากระดาษ A4 (210mm ≈ 794px) ให้พอดีกับหน้าจอมือถือ/แท็บเล็ตโดยไม่เสียสัดส่วน A4
   useEffect(() => {
     if (!isOpen) return;
@@ -325,6 +331,15 @@ export const PaperDocumentPreviewModal: React.FC<PaperDocumentPreviewModalProps>
           </div>
         </div>
       </div>
+
+      {/* แจ้งเตือนเมื่อเปิดใน In-App Browser เช่น Facebook Messenger หรือ LINE บน iOS/Android */}
+      {isInAppBrowser && (
+        <div className="w-full bg-amber-50 dark:bg-amber-950/80 border-b border-amber-200 dark:border-amber-800 px-4 py-2.5 text-xs text-amber-800 dark:text-amber-200 text-center no-print">
+          <p className="max-w-4xl mx-auto">
+            💡 <strong>เปิดผ่านแอป Messenger / LINE:</strong> คุณสามารถดูและตรวจสอบเอกสาร A4 บนหน้านี้ได้เต็มรูปแบบ หากต้องการสั่งพิมพ์ไปยังเครื่องพิมพ์โดยตรง แนะนำให้แตะปุ่มเมนู <strong>(...)</strong> ที่มุมขวาบนของแอป แล้วเลือก <strong>&quot;เปิดใน Safari (Open in Browser)&quot;</strong>
+          </p>
+        </div>
+      )}
 
       {/* =================================================================== */}
       {/* พื้นที่วางแผ่นกระดาษ A4 เสมือนจริง (210mm × 297mm True A4 Ratio)       */}

@@ -33,7 +33,11 @@ import {
 } from '../utils/formatters';
 import { SignaturePadField, MemberAttendanceStatus } from './SignaturePadField';
 import { ConfirmDialog } from './ConfirmDialog';
-import { PrintDocumentPortal, PaperPreviewPayload } from './PaperDocumentPreviewModal';
+import {
+  PaperDocumentPreviewModal,
+  PrintDocumentPortal,
+  PaperPreviewPayload,
+} from './PaperDocumentPreviewModal';
 import { Badge, Button, Card, DateField, Drawer, IconButton, InputField, TimeField24, toast } from './ui/DesignSystem';
 
 interface WorkTimeGroupFormProps {
@@ -105,6 +109,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   const [drawerWorkRecord, setDrawerWorkRecord] = useState<AnyWorkTimeRecord | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [printWorkPayload, setPrintWorkPayload] = useState<PaperPreviewPayload | null>(null);
+  const [previewModalPayload, setPreviewModalPayload] = useState<PaperPreviewPayload | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<AnyWorkTimeRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavedSuccess, setIsSavedSuccess] = useState(false);
@@ -356,7 +361,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       return;
     }
     const draft = buildDraftWorkTimeRecord();
-    setPrintWorkPayload({
+    const payload: PaperPreviewPayload = {
       type: 'work-time',
       groupConfig,
       pendingRecord: draft,
@@ -364,10 +369,9 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         ? records.map((r) => (r.RecordID === draft.RecordID ? draft : r))
         : [...records, draft],
       memberNames,
-    });
-    setTimeout(() => {
-      window.print();
-    }, 60);
+    };
+    setPrintWorkPayload(payload);
+    setPreviewModalPayload(payload);
   };
 
   const executeSaveWorkRecord = async (
@@ -517,16 +521,15 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   };
 
   const handlePrintA4 = () => {
-    setPrintWorkPayload({
+    const payload: PaperPreviewPayload = {
       type: 'work-time',
       groupConfig,
       pendingRecord: null,
       allRecordsWithPending: records,
       memberNames,
-    });
-    setTimeout(() => {
-      window.print();
-    }, 60);
+    };
+    setPrintWorkPayload(payload);
+    setPreviewModalPayload(payload);
   };
 
   const nextSequenceNumber = editingRecord ? editingRecord.SequenceNo : String(records.length + 1);
@@ -1238,8 +1241,16 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         )}
       </Drawer>
 
+      {/* หน้าต่างแสดงตัวอย่างเอกสารขนาด A4 เสมือนจริงบนหน้าจอ (Responsive A4 Modal) */}
+      <PaperDocumentPreviewModal
+        isOpen={Boolean(previewModalPayload)}
+        mode="view-only"
+        payload={previewModalPayload}
+        onCancel={() => setPreviewModalPayload(null)}
+      />
+
       {/* พอร์ทัลเอกสาร A4 ซ่อนบนหน้าจอแสดงผล 100% แต่จะแสดงเฉพาะขณะเรียก window.print() เท่านั้น */}
-      <PrintDocumentPortal payload={printWorkPayload} />
+      <PrintDocumentPortal payload={previewModalPayload || printWorkPayload} />
 
       {/* หน้าต่างยืนยันการลบรายการ */}
       <ConfirmDialog
