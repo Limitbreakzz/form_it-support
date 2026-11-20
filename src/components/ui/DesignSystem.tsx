@@ -730,6 +730,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelec
   // ตั้งตำแหน่ง Scroll เริ่มต้นให้ตรงกับค่าที่เลือกทันที (ป้องกัน Bug การเลื่อนแฉลบไป 01:01 ตอนโหลด)
   useEffect(() => {
     if (!containerRef.current) return;
+    containerRef.current.scrollLeft = 0;
     const targetTop = selectedIndex * ITEM_HEIGHT;
     // ปรับตำแหน่งเฉพาะเมื่อผู้ใช้ไม่ได้กำลังสัมผัส/เลื่อนลูกกลิ้งอยู่
     if (!isUserInteractingRef.current && Math.abs(containerRef.current.scrollTop - targetTop) > 2) {
@@ -738,6 +739,11 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelec
   }, [selectedIndex]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    // ล็อกไม่ให้เลื่อนซ้าย-ขวาเด็ดขาด (Strict horizontal scroll lock)
+    if (e.currentTarget.scrollLeft !== 0) {
+      e.currentTarget.scrollLeft = 0;
+    }
+
     // ดักฟังเฉพาะเมื่อเกิดจากการกระทำของผู้ใช้จริง (แตะ/ปัด/หมุนล้อเมาส์) เท่านั้น
     if (!isUserInteractingRef.current) return;
 
@@ -756,22 +762,38 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelec
 
   const startUserInteraction = () => {
     isUserInteractingRef.current = true;
+    if (containerRef.current && containerRef.current.scrollLeft !== 0) {
+      containerRef.current.scrollLeft = 0;
+    }
+  };
+
+  const handleTouchMove = () => {
+    isUserInteractingRef.current = true;
+    if (containerRef.current && containerRef.current.scrollLeft !== 0) {
+      containerRef.current.scrollLeft = 0;
+    }
   };
 
   return (
-    <div className="relative flex-1 h-full flex flex-col items-center">
-      {/* กระบอกหมุน (Drum wheel) รองรับ swipe / touch / mouse wheel พร้อม snap กึ่งกลาง */}
+    <div className="relative flex-1 min-w-0 h-full flex flex-col items-center overflow-hidden">
+      {/* กระบอกหมุน (Drum wheel) รองรับ swipe / touch / mouse wheel เฉพาะแกน Y (บน-ล่าง) ห้ามเลื่อนซ้าย-ขวา */}
       <div
         ref={containerRef}
         onScroll={handleScroll}
         onTouchStart={startUserInteraction}
-        onTouchMove={startUserInteraction}
+        onTouchMove={handleTouchMove}
         onMouseDown={startUserInteraction}
         onWheel={startUserInteraction}
         tabIndex={0}
         aria-label={ariaLabel}
-        className="w-full h-[220px] overflow-y-auto snap-y snap-mandatory select-none py-[88px] touch-pan-y focus:outline-none"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        className="w-full h-[220px] overflow-y-auto overflow-x-hidden snap-y snap-mandatory select-none py-[88px] touch-pan-y focus:outline-none overscroll-x-contain"
+        style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          touchAction: 'pan-y',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+        }}
       >
         {items.map((item, idx) => {
           const isSelected = idx === selectedIndex;
@@ -788,7 +810,7 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelec
                 });
               }}
               style={{ height: `${ITEM_HEIGHT}px` }}
-              className={`snap-center flex items-center justify-center font-mono cursor-pointer transition-all duration-150 relative z-20 ${
+              className={`w-full max-w-full snap-center flex items-center justify-center font-mono cursor-pointer transition-transform duration-150 relative z-20 select-none ${
                 isSelected
                   ? 'text-2xl font-black text-slate-900 dark:text-white scale-110 tracking-widest'
                   : dist === 1
@@ -950,7 +972,7 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
             />
 
             {/* 2 คอลัมน์ ชั่วโมง และ นาที + เครื่องหมาย : อยู่กึ่งกลางความสูงพอดี */}
-            <div className="flex items-center justify-center gap-2 h-full relative z-20">
+            <div className="flex items-center justify-center gap-2 h-full relative z-20 w-full overflow-hidden">
               <WheelColumn
                 items={HOURS}
                 selectedIndex={selectedHour}
