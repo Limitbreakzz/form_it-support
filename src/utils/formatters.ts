@@ -33,14 +33,28 @@ export function generateUniqueReceiptNumber(existingReceipts: string[] = []): st
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
   const datePart = `${y}${m}${d}`;
+  const prefix = `ITS-${datePart}-`;
 
-  let candidate = '';
-  let attempts = 0;
-  do {
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    candidate = `ITS-${datePart}-${rand}`;
-    attempts++;
-  } while (existingReceipts.includes(candidate) && attempts < 50);
+  // หาเลขลำดับของวันนี้ เพื่อรันต่อเป็น 001, 002, 003...
+  const todayReceipts = existingReceipts.filter((r) => r && r.startsWith(prefix));
+  let maxSeq = 0;
+  for (const r of todayReceipts) {
+    const suffix = r.substring(prefix.length).trim();
+    const num = parseInt(suffix, 10);
+    // กรองเฉพาะเลขลำดับปกติ (< 1000) ไม่นับเลขสุ่ม 4 หลักแบบเดิม
+    if (!isNaN(num) && num < 1000 && num > maxSeq) {
+      maxSeq = num;
+    }
+  }
+
+  let nextSeq = maxSeq > 0 ? maxSeq + 1 : todayReceipts.length + 1;
+  let candidate = `${prefix}${String(nextSeq).padStart(3, '0')}`;
+
+  // ป้องกันกรณีเลขซ้ำกับที่มีอยู่แล้วในระบบ ให้ขยับเลขขึ้นไปเรื่อย ๆ
+  while (existingReceipts.includes(candidate)) {
+    nextSeq++;
+    candidate = `${prefix}${String(nextSeq).padStart(3, '0')}`;
+  }
 
   return candidate;
 }
