@@ -357,15 +357,81 @@ pre code {
   animation-delay: 0s;
 }
 
+/* Login Page Micro-Animations (Following Emil Kowalski & animate skill) */
+@keyframes loginCardEntry {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-loginCard {
+  animation: loginCardEntry 400ms var(--ease-out-expo) forwards;
+}
+
+@keyframes shakeError {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-6px);
+  }
+  40%, 80% {
+    transform: translateX(6px);
+  }
+}
+
+.animate-shake {
+  animation: shakeError 360ms var(--ease-out-expo);
+}
+
+@keyframes ambientPulse {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.22;
+  }
+  50% {
+    transform: scale(1.08) translate(15px, -10px);
+    opacity: 0.35;
+  }
+}
+
+.animate-ambient-glow {
+  animation: ambientPulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes ambientPulse2 {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.18;
+  }
+  50% {
+    transform: scale(1.12) translate(-20px, 12px);
+    opacity: 0.28;
+  }
+}
+
+.animate-ambient-glow2 {
+  animation: ambientPulse2 10s ease-in-out infinite alternate;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-toastSlideIn,
   .animate-scaleCheck,
   .animate-runningDot1,
   .animate-runningDot2,
-  .animate-runningDot3 {
+  .animate-runningDot3,
+  .animate-loginCard,
+  .animate-shake,
+  .animate-ambient-glow,
+  .animate-ambient-glow2 {
     animation: none !important;
     transform: none !important;
-    opacity: 0.8 !important;
+    opacity: 1 !important;
   }
 }
 

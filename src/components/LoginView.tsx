@@ -27,11 +27,29 @@ export const LoginView: React.FC<LoginViewProps> = ({
   darkMode,
   onToggleDarkMode,
 }) => {
-  const [username, setUsername] = useState('');
+  const defaultAccount = PRESET_ACCOUNTS[0] || {
+    id: 'user-admin',
+    username: 'admin',
+    password: '123456',
+    name: 'เจ้าหน้าที่ศูนย์บริการ IT Support',
+    role: 'admin' as const,
+    roleLabelTh: 'เจ้าหน้าที่ IT Support (Admin)',
+    avatarColor: 'bg-blue-600',
+  };
+
+  const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isShaking, setIsShaking] = useState(false);
+
+  const triggerErrorShake = (msg: string) => {
+    setErrorMessage(msg);
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 400);
+    toast.error(msg);
+  };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,143 +59,163 @@ export const LoginView: React.FC<LoginViewProps> = ({
     const cleanPass = password.trim();
 
     if (!cleanUser) {
-      setErrorMessage('กรุณากรอกชื่อผู้ใช้งาน หรือเลือกบัญชีด่วนด้านล่าง');
+      triggerErrorShake('กรุณากรอกชื่อผู้ใช้งาน (admin)');
       return;
     }
     if (!cleanPass) {
-      setErrorMessage('กรุณากรอกรหัสผ่าน');
+      triggerErrorShake('กรุณากรอกรหัสผ่าน (123456)');
       return;
     }
 
     setIsLoading(true);
 
     setTimeout(() => {
-      // ตรวจสอบกับบัญชีที่กำหนดไว้ในระบบ
-      const matched = PRESET_ACCOUNTS.find(
-        (acc) =>
-          (acc.username.toLowerCase() === cleanUser || acc.name.toLowerCase() === cleanUser) &&
-          (acc.password === cleanPass ||
-            cleanPass === '1234' ||
-            (acc.username === 'admin' && (cleanPass === 'admin' || cleanPass === 'admin1234')))
-      );
-
-      if (matched) {
+      // ตรวจสอบชื่อผู้ใช้งาน admin และรหัสผ่าน 123456
+      if (
+        (cleanUser === 'admin' || cleanUser === 'it-support' || cleanUser === 'staff') &&
+        (cleanPass === '123456' || cleanPass === '1234' || cleanPass === 'admin1234')
+      ) {
         setIsLoading(false);
         const authUser: AuthUser = {
-          id: matched.id,
-          username: matched.username,
-          name: matched.name,
-          role: matched.role,
-          roleLabelTh: matched.roleLabelTh,
-          shift: matched.shift,
-          avatarColor: matched.avatarColor,
+          id: defaultAccount.id,
+          username: 'admin',
+          name: defaultAccount.name,
+          role: 'admin',
+          roleLabelTh: defaultAccount.roleLabelTh,
+          avatarColor: defaultAccount.avatarColor,
         };
-        toast.success(`ยินดีต้อนรับคุณ ${matched.name}`, {
-          title: `เข้าสู่ระบบสำเร็จ (${matched.roleLabelTh})`,
+        toast.success(`ยินดีต้อนรับ ${defaultAccount.name}`, {
+          title: 'เข้าสู่ระบบสำเร็จ',
         });
         onLoginSuccess(authUser);
       } else {
         setIsLoading(false);
-        setErrorMessage('ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง หรือใช้ปุ่มเข้าสู่ระบบด่วน');
-        toast.error('เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบรหัสผ่าน');
+        triggerErrorShake('รหัสผ่านไม่ถูกต้อง กรุณากรอกรหัสผ่าน 123456');
       }
-    }, 450);
+    }, 380);
   };
 
-  const handleQuickLogin = (account: (typeof PRESET_ACCOUNTS)[0]) => {
-    setUsername(account.username);
-    setPassword(account.password);
+  const handleQuickAutoFill = () => {
+    setUsername('admin');
+    setPassword('123456');
     setErrorMessage('');
     setIsLoading(true);
 
     setTimeout(() => {
       setIsLoading(false);
       const authUser: AuthUser = {
-        id: account.id,
-        username: account.username,
-        name: account.name,
-        role: account.role,
-        roleLabelTh: account.roleLabelTh,
-        shift: account.shift,
-        avatarColor: account.avatarColor,
+        id: defaultAccount.id,
+        username: 'admin',
+        name: defaultAccount.name,
+        role: 'admin',
+        roleLabelTh: defaultAccount.roleLabelTh,
+        avatarColor: defaultAccount.avatarColor,
       };
-      toast.success(`ยินดีต้อนรับคุณ ${account.name}`, {
-        title: `เข้าสู่ระบบสำเร็จ (${account.roleLabelTh})`,
+      toast.success(`ยินดีต้อนรับ ${defaultAccount.name}`, {
+        title: 'เข้าสู่ระบบสำเร็จ',
       });
       onLoginSuccess(authUser);
-    }, 350);
+    }, 320);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-between text-slate-900 dark:text-slate-100 font-sans selection:bg-blue-600 selection:text-white transition-colors">
-      {/* แถบด้านบน: สลับธีมสว่าง/มืด */}
-      <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400">
-          <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
-          <span>ระบบรักษาความปลอดภัยศูนย์บริการ IT Support</span>
-        </div>
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-slate-50 dark:bg-[#070b14] text-slate-900 dark:text-slate-100 font-sans selection:bg-blue-600 selection:text-white transition-colors duration-300">
+      {/* 1. แสงบรรยากาศพื้นหลังแบบ Ambient Radial Glow (GPU Accelerated) */}
+      <div
+        className="pointer-events-none absolute -top-40 -left-40 w-96 h-96 rounded-full bg-blue-500/20 dark:bg-blue-600/15 blur-[120px] animate-ambient-glow"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-500/20 dark:bg-indigo-600/15 blur-[120px] animate-ambient-glow2"
+        aria-hidden="true"
+      />
+
+      {/* 2. ลวดลายตารางโปร่งแสงบางเบาบนพื้นหลัง (Tech Grid Overlay) */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:28px_28px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"
+        aria-hidden="true"
+      />
+
+      {/* 3. ปุ่มสลับธีมลอยตัวมุมขวาบน (Floating Minimalist Theme Toggle) โดยไม่มี Header Bar ขวางตา */}
+      <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20">
         <button
           type="button"
           onClick={onToggleDarkMode}
-          title={darkMode ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
+          title={darkMode ? 'สลับเป็นโหมดสว่าง (Light Mode)' : 'สลับเป็นโหมดมืด (Dark Mode)'}
           aria-label={darkMode ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
-          className="min-h-[40px] px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-900 transition inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+          className="min-h-[40px] px-3.5 py-2 rounded-full border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm hover:shadow transition-all text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 active:scale-95"
         >
           {darkMode ? (
             <>
-              <Sun className="w-4 h-4 text-amber-400" aria-hidden="true" />
-              <span>โหมดสว่าง</span>
+              <Sun className="w-4 h-4 text-amber-400 animate-spin-slow" aria-hidden="true" />
+              <span className="hidden sm:inline">โหมดสว่าง</span>
             </>
           ) : (
             <>
               <Moon className="w-4 h-4 text-slate-600" aria-hidden="true" />
-              <span>โหมดมืด</span>
+              <span className="hidden sm:inline">โหมดมืด</span>
             </>
           )}
         </button>
-      </header>
+      </div>
 
-      {/* เนื้อหากลาง: ฟอร์มเข้าสู่ระบบ */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-auto">
-        <div className="w-full max-w-md space-y-6">
-          {/* ตราสัญลักษณ์และหัวข้อระบบ */}
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/25 mx-auto">
-              <Wrench className="w-7 h-7" aria-hidden="true" />
+      {/* 4. กล่องการ์ดเข้าสู่ระบบจัดกึ่งกลางหน้าจออย่างสมบูรณ์แบบ พร้อมแอนิเมชันเปิดหน้าจอ */}
+      <div className="relative z-10 w-full max-w-[430px] my-auto">
+        <div className={`space-y-6 animate-loginCard ${isShaking ? 'animate-shake' : ''}`}>
+          {/* ส่วนหัวแบรนด์ศูนย์บริการ IT Support */}
+          <div className="text-center space-y-3">
+            <div className="relative inline-flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-700 to-blue-500 text-white shadow-xl shadow-blue-600/30 flex items-center justify-center transform transition-transform duration-300 hover:scale-105">
+                <Wrench className="w-8 h-8 drop-shadow-sm" aria-hidden="true" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white shadow-sm">
+                <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
+              </div>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              ศูนย์บริการซ่อมและดูแลคอมพิวเตอร์
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
-              IT SUPPORT • อาคาร 1 ชั้น 3 ห้อง 3<br />
-              กรุณาเข้าสู่ระบบเพื่อจัดการใบแจ้งซ่อมและบันทึกเวลาปฏิบัติงาน
-            </p>
+
+            <div className="space-y-1">
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                ศูนย์บริการซ่อมและดูแลคอมพิวเตอร์
+              </h1>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 leading-normal">
+                IT SUPPORT • อาคาร 1 ชั้น 3 ห้อง 3
+              </p>
+            </div>
           </div>
 
-          {/* การ์ดฟอร์มเข้าสู่ระบบ */}
-          <Card className="p-6 sm:p-7 shadow-[0_20px_25px_-5px_rgba(15,23,42,0.08),0_8px_10px_-6px_rgba(15,23,42,0.04)] border border-slate-200 dark:border-slate-800">
+          {/* การ์ดฟอร์มเข้าสู่ระบบ (Elevated Modern Card) */}
+          <Card className="p-6 sm:p-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-[0_20px_35px_-10px_rgba(15,23,42,0.12),0_10px_15px_-5px_rgba(15,23,42,0.06)] rounded-3xl">
+            <div className="mb-5 pb-3 border-b border-slate-100 dark:border-slate-800/80">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                เข้าสู่ระบบสำหรับเจ้าหน้าที่
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                บัญชีกลางสำหรับสมาชิกทุกคน เข้าใช้งานระบบจัดการงานซ่อม
+              </p>
+            </div>
+
             <form onSubmit={handleLoginSubmit} className="space-y-4">
-              {/* ข้อความแจ้งเตือนเมื่อเกิดข้อผิดพลาด */}
+              {/* ข้อความแจ้งเตือนข้อผิดพลาดพร้อมสั่นเตือน */}
               {errorMessage && (
                 <div
                   role="alert"
-                  className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300"
+                  className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 flex items-start gap-2.5 text-xs text-red-700 dark:text-red-300 animate-fadeIn"
                 >
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
-                  <span className="leading-relaxed">{errorMessage}</span>
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600 dark:text-red-400" aria-hidden="true" />
+                  <span className="leading-relaxed font-medium">{errorMessage}</span>
                 </div>
               )}
 
-              {/* ช่องชื่อผู้ใช้งาน */}
-              <div>
+              {/* ช่องชื่อผู้ใช้งาน (Default: admin) */}
+              <div className="space-y-1.5">
                 <label
                   htmlFor="login-username"
-                  className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+                  className="block text-xs font-bold text-slate-700 dark:text-slate-300"
                 >
-                  ชื่อผู้ใช้งาน (Username) <span className="text-red-500">*</span>
+                  ชื่อผู้ใช้งาน (Username)
                 </label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                <div className="relative group">
+                  <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                     <User className="w-4 h-4" aria-hidden="true" />
                   </div>
                   <input
@@ -190,22 +228,27 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       setUsername(e.target.value);
                       if (errorMessage) setErrorMessage('');
                     }}
-                    placeholder="เช่น admin หรือ staff"
-                    className="w-full h-[44px] pl-10 pr-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-600 transition"
+                    placeholder="admin"
+                    className="w-full h-[46px] pl-10 pr-3.5 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-medium focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/15 focus-visible:border-blue-600 transition-all"
                   />
                 </div>
               </div>
 
               {/* ช่องรหัสผ่าน */}
-              <div>
-                <label
-                  htmlFor="login-password"
-                  className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
-                >
-                  รหัสผ่าน (Password) <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="login-password"
+                    className="block text-xs font-bold text-slate-700 dark:text-slate-300"
+                  >
+                    รหัสผ่าน (Password)
+                  </label>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                    รหัสผ่าน: 123456
+                  </span>
+                </div>
+                <div className="relative group">
+                  <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                     <KeyRound className="w-4 h-4" aria-hidden="true" />
                   </div>
                   <input
@@ -218,14 +261,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       setPassword(e.target.value);
                       if (errorMessage) setErrorMessage('');
                     }}
-                    placeholder="กรอกรหัสผ่าน (ค่าเริ่มต้น: 1234)"
-                    className="w-full h-[44px] pl-10 pr-11 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-600 transition"
+                    placeholder="กรอกรหัสผ่าน 123456"
+                    className="w-full h-[46px] pl-10 pr-11 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/70 text-slate-900 dark:text-white placeholder:text-slate-400 text-sm font-mono tracking-wider focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/15 focus-visible:border-blue-600 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95"
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" aria-hidden="true" />
@@ -236,73 +279,43 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </div>
               </div>
 
-              {/* ปุ่มส่งฟอร์มเข้าสู่ระบบ */}
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                isLoading={isLoading}
-                icon={<LogIn className="w-4 h-4" />}
-                className="w-full mt-2"
-              >
-                เข้าสู่ระบบเพื่อเริ่มปฏิบัติงาน
-              </Button>
+              {/* ปุ่มเข้าสู่ระบบ */}
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  isLoading={isLoading}
+                  icon={<LogIn className="w-4 h-4" />}
+                  className="w-full h-[46px] rounded-2xl text-sm font-bold shadow-lg shadow-blue-600/25 transition-transform active:scale-[0.98]"
+                >
+                  เข้าสู่ระบบปฏิบัติงาน
+                </Button>
+              </div>
             </form>
 
-            {/* ส่วนแบ่ง: เข้าสู่ระบบด่วน */}
-            <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
-                  เลือกบัญชีเข้าสู่ระบบด่วน (Quick Login)
-                </span>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500">คลิกเพื่อเข้าใช้งานทันที</span>
-              </div>
-
-              {/* ปุ่มบัญชีด่วน */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {PRESET_ACCOUNTS.map((acc) => (
-                  <button
-                    key={acc.id}
-                    type="button"
-                    onClick={() => handleQuickLogin(acc)}
-                    disabled={isLoading}
-                    className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 hover:bg-blue-50/70 dark:bg-slate-800/40 dark:hover:bg-blue-950/30 text-left transition hover:border-blue-300 dark:hover:border-blue-800 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className={`w-7 h-7 rounded-lg ${acc.avatarColor || 'bg-blue-600'} text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-sm`}
-                      >
-                        {acc.name.charAt(0)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate">
-                          {acc.name}
-                        </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                          {acc.roleLabelTh}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+            {/* ปุ่มเข้าสู่ระบบด่วน 1 คลิก ด้วยรหัส admin / 123456 */}
+            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+              <button
+                type="button"
+                onClick={handleQuickAutoFill}
+                disabled={isLoading}
+                title="คลิกเพื่อเข้าสู่ระบบทันทีด้วยรหัสกลาง (admin / 123456)"
+                className="w-full py-2.5 px-3.5 rounded-2xl border border-blue-200/80 dark:border-blue-900/40 bg-blue-50/70 hover:bg-blue-100/80 dark:bg-blue-950/30 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold transition-all flex items-center justify-center gap-2 group active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover:rotate-12 transition-transform" aria-hidden="true" />
+                <span>เข้าสู่ระบบทันทีด้วยรหัสกลาง (admin / 123456)</span>
+              </button>
             </div>
           </Card>
 
-          {/* ป้ายรับรองความปลอดภัย */}
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400 text-center">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-            <span>เชื่อมต่อกับ Google Sheets และระบบคลาวด์อย่างปลอดภัย (256-bit)</span>
+          {/* ป้ายระบุความปลอดภัยแบบกระชับ */}
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400 text-center font-medium">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />
+            <span>เชื่อมต่อกับ Google Sheets อย่างปลอดภัย (256-bit SSL)</span>
           </div>
         </div>
-      </main>
-
-      {/* ท้ายหน้า */}
-      <footer className="py-4 text-center text-xs text-slate-400 dark:text-slate-500">
-        ศูนย์บริการซ่อมและดูแลคอมพิวเตอร์ IT Support • ระบบบันทึกและจัดการงานซ่อม
-      </footer>
+      </div>
     </div>
   );
 };
-
