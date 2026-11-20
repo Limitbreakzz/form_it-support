@@ -81,7 +81,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     generateUniqueReceiptNumber(existingReceiptNumbers)
   );
   const [date, setDate] = useState<string>(() => getCurrentDateISO());
-  const [time, setTime] = useState<string>(() => getCurrentTime24());
+  const [time, setTime] = useState<string>('09:00');
 
   // 1. ข้อมูลผู้ขอรับบริการและเจ้าหน้าที่ผู้รับเรื่อง
   const technicianOptions = React.useMemo(() => getAllTechnicians(), []);
@@ -125,7 +125,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     if (editingRecord) {
       setReceiptNumber(editingRecord.ReceiptNumber);
       setDate(editingRecord.Date ? editingRecord.Date.split('T')[0] : getCurrentDateISO());
-      setTime(editingRecord.Time ? editingRecord.Time.slice(0, 5) : getCurrentTime24());
+      setTime(editingRecord.Time ? editingRecord.Time.slice(0, 5) : '09:00');
       setFullName(editingRecord.FullName);
       setPhoneNumber(editingRecord.PhoneNumber);
       setDepartment(editingRecord.Department || '');
@@ -174,7 +174,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
   const handleRegenerateReceipt = () => {
     if (editingRecord) return;
     setReceiptNumber(generateUniqueReceiptNumber(existingReceiptNumbers));
-    setTime(getCurrentTime24());
+    setTime('09:00');
   };
 
   const validateForm = (): boolean => {
@@ -345,7 +345,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         const updatedReceipts = [...existingReceiptNumbers, recordToSave.ReceiptNumber];
         setReceiptNumber(generateUniqueReceiptNumber(updatedReceipts));
         setDate(getCurrentDateISO());
-        setTime(getCurrentTime24());
+        setTime('09:00');
         setFullName('');
         setPhoneNumber('');
         setDepartment('');

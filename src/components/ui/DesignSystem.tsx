@@ -724,92 +724,85 @@ interface WheelColumnProps {
 
 const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelect, unitLabel }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const isScrollingRef = useRef(false);
+  const isUserInteractingRef = useRef(false);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // เลื่อนตำแหน่งลูกกลิ้งไปยังค่าที่เลือกอัตโนมัติเมื่อเปิดหน้าต่าง
+  // ตั้งตำแหน่ง Scroll เริ่มต้นให้ตรงกับค่าที่เลือกทันที (ป้องกัน Bug การเลื่อนแฉลบไป 01:01 ตอนโหลด)
   useEffect(() => {
     if (!containerRef.current) return;
     const targetTop = selectedIndex * ITEM_HEIGHT;
-    if (Math.abs(containerRef.current.scrollTop - targetTop) > 2) {
-      containerRef.current.scrollTo({
-        top: targetTop,
-        behavior: isScrollingRef.current ? 'auto' : 'smooth',
-      });
+    // ปรับตำแหน่งเฉพาะเมื่อผู้ใช้ไม่ได้กำลังสัมผัส/เลื่อนลูกกลิ้งอยู่
+    if (!isUserInteractingRef.current && Math.abs(containerRef.current.scrollTop - targetTop) > 2) {
+      containerRef.current.scrollTop = targetTop;
     }
   }, [selectedIndex]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    isScrollingRef.current = true;
+    // ดักฟังเฉพาะเมื่อเกิดจากการกระทำของผู้ใช้จริง (แตะ/ปัด/หมุนล้อเมาส์) เท่านั้น
+    if (!isUserInteractingRef.current) return;
+
     const top = e.currentTarget.scrollTop;
     const nextIdx = Math.round(top / ITEM_HEIGHT);
     const clamped = Math.max(0, Math.min(items.length - 1, nextIdx));
     if (clamped !== selectedIndex) {
       onSelect(clamped);
     }
-    setTimeout(() => {
-      isScrollingRef.current = false;
-    }, 120);
+
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      isUserInteractingRef.current = false;
+    }, 150);
+  };
+
+  const startUserInteraction = () => {
+    isUserInteractingRef.current = true;
   };
 
   return (
     <div className="relative flex-1 flex flex-col items-center">
-      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">
+      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
         {unitLabel}
       </span>
 
-      <div className="relative w-full overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800">
-        {/* แถบไฮไลต์แกนกลางกระบอกหมุน (Selection indicator bar) */}
-        <div
-          aria-hidden="true"
-          className="absolute left-2 right-2 top-[88px] h-[44px] rounded-xl bg-blue-500/15 dark:bg-blue-400/20 border-y border-blue-500/40 pointer-events-none z-0"
-        />
-
-        {/* เงาไล่ระดับบน-ล่างเลียนแบบมิติทรงกระบอกลูกกลิ้ง 3D (เหมือนนาฬิกาปลุก iOS/Android) */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 h-[88px] bg-gradient-to-b from-slate-50 via-slate-50/80 to-transparent dark:from-slate-950 dark:via-slate-950/80 to-transparent z-10"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[88px] bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent dark:from-slate-950 dark:via-slate-950/80 to-transparent z-10"
-        />
-
-        {/* กระบอกหมุน (Drum wheel) รองรับ swipe / drag / touch / mouse wheel พร้อม snap กึ่งกลาง */}
-        <div
-          ref={containerRef}
-          onScroll={handleScroll}
-          tabIndex={0}
-          aria-label={unitLabel}
-          className="w-full h-[220px] overflow-y-auto snap-y snap-mandatory select-none py-[88px] touch-pan-y focus:outline-none"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {items.map((item, idx) => {
-            const isSelected = idx === selectedIndex;
-            const dist = Math.abs(idx - selectedIndex);
-            return (
-              <div
-                key={item}
-                onClick={() => {
-                  onSelect(idx);
-                  containerRef.current?.scrollTo({
-                    top: idx * ITEM_HEIGHT,
-                    behavior: 'smooth',
-                  });
-                }}
-                style={{ height: `${ITEM_HEIGHT}px` }}
-                className={`snap-center flex items-center justify-center font-mono cursor-pointer transition-all duration-150 relative z-20 ${
-                  isSelected
-                    ? 'text-2xl font-black text-blue-600 dark:text-blue-400 scale-110 tracking-widest'
-                    : dist === 1
-                    ? 'text-lg font-semibold text-slate-700 dark:text-slate-300 opacity-60 scale-95'
-                    : 'text-sm font-medium text-slate-400 dark:text-slate-600 opacity-30 scale-85'
-                }`}
-              >
-                {item}
-              </div>
-            );
-          })}
-        </div>
+      {/* กระบอกหมุน (Drum wheel) รองรับ swipe / touch / mouse wheel พร้อม snap กึ่งกลาง */}
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        onTouchStart={startUserInteraction}
+        onMouseDown={startUserInteraction}
+        onWheel={startUserInteraction}
+        tabIndex={0}
+        aria-label={unitLabel}
+        className="w-full h-[220px] overflow-y-auto snap-y snap-mandatory select-none py-[88px] touch-pan-y focus:outline-none"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {items.map((item, idx) => {
+          const isSelected = idx === selectedIndex;
+          const dist = Math.abs(idx - selectedIndex);
+          return (
+            <div
+              key={item}
+              onClick={() => {
+                isUserInteractingRef.current = false;
+                onSelect(idx);
+                containerRef.current?.scrollTo({
+                  top: idx * ITEM_HEIGHT,
+                  behavior: 'smooth',
+                });
+              }}
+              style={{ height: `${ITEM_HEIGHT}px` }}
+              className={`snap-center flex items-center justify-center font-mono cursor-pointer transition-all duration-150 relative z-20 ${
+                isSelected
+                  ? 'text-2xl font-black text-slate-900 dark:text-white scale-110 tracking-widest'
+                  : dist === 1
+                  ? 'text-base font-semibold text-slate-400 dark:text-slate-500 scale-95'
+                  : 'text-xs font-medium text-slate-300 dark:text-slate-600 scale-85 opacity-40'
+              }`}
+            >
+              {item}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -843,6 +836,7 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
     return Math.max(0, Math.min(59, Number(m) || 0));
   });
 
+  // ซิงก์ค่าเวลาเริ่มต้นให้ตรงกับช่องเสมอเมื่อเปิด Modal ขึ้นมา
   useEffect(() => {
     if (isOpen) {
       const [h, m] = (value || '09:00').split(':');
@@ -851,14 +845,20 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
     }
   }, [isOpen, value]);
 
+  // ล็อกการเลื่อนหน้าพื้นหลังขณะเปิดหน้าต่าง
   useEffect(() => {
     if (!isOpen) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, onCancel]);
 
   if (!isOpen) return null;
 
@@ -885,21 +885,21 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
       onClick={onCancel}
     >
       <div
-        className="w-full sm:max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-toastSlideIn flex flex-col"
+        className="w-full sm:max-w-sm bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-toastSlideIn flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* แถบหัวข้อหน้าต่าง */}
-        <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/40">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+        {/* แถบหัวข้อหน้าต่างแบบ Minimal (Quiet Chrome ตามหลัก Unslopped UI) */}
+        <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
               <Clock className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
                 {label}
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                เลื่อนหมุนขึ้น–ลงเพื่อเลือกเวลา (เหมือนตั้งเวลาปลุก)
+                เลื่อนหมุนขึ้น–ลงเพื่อปรับเวลา (ระบบ 24 ชม.)
               </p>
             </div>
           </div>
@@ -913,41 +913,65 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
           </button>
         </div>
 
-        {/* แถบแสดงเวลาขนาดใหญ่แบบดิจิทัล */}
-        <div className="pt-4 pb-2 px-6 flex flex-col items-center justify-center bg-slate-50/40 dark:bg-slate-950/20">
-          <div className="font-mono text-3xl sm:text-4xl font-black text-blue-600 dark:text-blue-400 tracking-wider tabular-nums px-5 py-1.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 shadow-inner">
-            {currentFormatted}
-            <span className="text-xs font-sans font-bold text-blue-500/80 dark:text-blue-400/80 ml-2">
+        {/* แถบแสดงเวลาที่เลือกขนาดใหญ่แบบ Precision Time Display */}
+        <div className="pt-4 pb-2 px-6 flex flex-col items-center justify-center">
+          <div className="flex items-baseline gap-1.5 font-mono text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight tabular-nums">
+            <span>{currentFormatted}</span>
+            <span className="text-xs font-sans font-semibold text-slate-400 dark:text-slate-500">
               น.
             </span>
           </div>
+          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+            เวลาที่กำลังเลือก
+          </span>
         </div>
 
-        {/* ลูกกลิ้ง 2 กระบอก: ชั่วโมง และ นาที */}
-        <div className="px-6 py-2 flex items-center justify-center gap-3 bg-white dark:bg-slate-900">
-          <WheelColumn
-            items={HOURS}
-            selectedIndex={selectedHour}
-            onSelect={setSelectedHour}
-            unitLabel="ชั่วโมง (00 – 23)"
-          />
+        {/* ห้องกระบอกหมุนทรงกระบอกคู่ (Unified Cylinder Drum Chamber สไตล์ iOS Alarm Clock) */}
+        <div className="px-5 py-2">
+          <div className="relative overflow-hidden rounded-2xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 p-2">
+            {/* แถบเลนส์กระจกไฮไลต์แถวกลางแบบชิ้นเดียว (Continuous Selection Lens) */}
+            <div
+              aria-hidden="true"
+              className="absolute left-2 right-2 top-[88px] h-[44px] rounded-xl bg-white dark:bg-slate-700/90 shadow-sm border border-slate-200 dark:border-slate-600/80 pointer-events-none z-0"
+            />
 
-          <div className="font-mono text-3xl font-extrabold text-slate-400 dark:text-slate-600 pt-5 select-none" aria-hidden="true">
-            :
+            {/* เงาไล่ระดับบน-ล่างให้ความลึกเสมือนกระบอกหมุนจริง */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 h-[80px] bg-gradient-to-b from-slate-100 via-slate-100/70 to-transparent dark:from-slate-800 dark:via-slate-800/70 to-transparent z-10"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-[80px] bg-gradient-to-t from-slate-100 via-slate-100/70 to-transparent dark:from-slate-800 dark:via-slate-800/70 to-transparent z-10"
+            />
+
+            {/* 2 คอลัมน์ ชั่วโมง และ นาที */}
+            <div className="flex items-center justify-center gap-2">
+              <WheelColumn
+                items={HOURS}
+                selectedIndex={selectedHour}
+                onSelect={setSelectedHour}
+                unitLabel="ชั่วโมง"
+              />
+
+              <div className="font-mono text-2xl font-bold text-slate-400 dark:text-slate-500 pt-5 select-none z-20" aria-hidden="true">
+                :
+              </div>
+
+              <WheelColumn
+                items={MINUTES}
+                selectedIndex={selectedMinute}
+                onSelect={setSelectedMinute}
+                unitLabel="นาที"
+              />
+            </div>
           </div>
-
-          <WheelColumn
-            items={MINUTES}
-            selectedIndex={selectedMinute}
-            onSelect={setSelectedMinute}
-            unitLabel="นาที (00 – 59)"
-          />
         </div>
 
-        {/* ปุ่มลัดเวลากดยอดนิยม */}
-        <div className="px-5 py-2.5 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30">
+        {/* ปุ่มลัดเวลากดยอดนิยม (Quick Presets) */}
+        <div className="px-5 py-2.5 bg-slate-50/60 dark:bg-slate-950/20 border-t border-slate-100 dark:border-slate-800/80">
           <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-            เวลากดยอดนิยม:
+            เวลาลัด:
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             {['08:30', '09:00', '12:00', '13:00', '16:00', '17:00'].map((preset) => (
@@ -967,7 +991,7 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
             <button
               type="button"
               onClick={handleSetNow}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition inline-flex items-center gap-1"
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition inline-flex items-center gap-1"
             >
               <Clock className="w-3 h-3" />
               <span>ตอนนี้</span>
@@ -976,7 +1000,7 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
         </div>
 
         {/* ปุ่มกดยืนยันหรือยกเลิก */}
-        <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5 bg-white dark:bg-slate-900">
+        <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5 bg-white dark:bg-slate-900">
           <Button
             type="button"
             variant="outline"
@@ -1006,7 +1030,7 @@ export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProp
 
 /**
  * ช่องเวลาแบบ 24 ชั่วโมง (HH:mm) พร้อมระบบหมุนเลื่อนเหมือนนาฬิกาปลุก (Alarm Clock Wheel Picker)
- * ค่าเริ่มต้น 09:00 หรือเวลาปัจจุบัน พร้อมปุ่มลัด "ตอนนี้" (Now)
+ * ค่าเริ่มต้น 09:00 พร้อมปุ่มลัด "ตอนนี้" (Now)
  */
 export const TimeField24: React.FC<TimeField24Props> = ({
   value,
