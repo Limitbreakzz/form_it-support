@@ -84,7 +84,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   };
 
   const [date, setDate] = useState<string>(() => getCurrentDateISO());
-  const [workStartTime, setWorkStartTime] = useState<string>(() => getCurrentTime24());
+  const [workStartTime, setWorkStartTime] = useState<string>('09:00');
   const [workEndTime, setWorkEndTime] = useState<string>('16:00');
   const [remarks, setRemarks] = useState<string>('');
 
@@ -172,7 +172,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       setDrawerWorkRecord(null);
       setPrintWorkPayload(null);
       setDate(getCurrentDateISO());
-      setWorkStartTime(getCurrentTime24());
+      setWorkStartTime('09:00');
       setWorkEndTime('16:00');
       setRemarks('');
       setMemberNames(getInitialNames());
@@ -433,6 +433,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       setEditingRecord(null);
       if (onCancelEdit) onCancelEdit();
       setRemarks('');
+      setWorkStartTime('09:00');
+      setWorkEndTime('16:00');
       setMemberSignatures(Array(memberCount).fill(''));
 
       if (shouldPrintImmediately) {

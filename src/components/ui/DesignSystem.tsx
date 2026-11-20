@@ -713,6 +713,301 @@ interface TimeField24Props
  * ช่องเวลาแบบ 24 ชั่วโมง (HH:mm) — ไม่มี AM/PM ไม่ขึ้นกับการตั้งค่าภาษาของเครื่อง
  * ค่าเริ่มต้นถูกเติมให้อัตโนมัติจากฟอร์ม พร้อมปุ่มลัด "ตอนนี้" (Now) เมื่อต้องการอัปเดตเวลาปัจจุบัน
  */
+const ITEM_HEIGHT = 44; // 44px standard touch target
+
+interface WheelColumnProps {
+  items: string[];
+  selectedIndex: number;
+  onSelect: (index: number) => void;
+  unitLabel: string;
+}
+
+const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelect, unitLabel }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
+
+  // เลื่อนตำแหน่งลูกกลิ้งไปยังค่าที่เลือกอัตโนมัติเมื่อเปิดหน้าต่าง
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const targetTop = selectedIndex * ITEM_HEIGHT;
+    if (Math.abs(containerRef.current.scrollTop - targetTop) > 2) {
+      containerRef.current.scrollTo({
+        top: targetTop,
+        behavior: isScrollingRef.current ? 'auto' : 'smooth',
+      });
+    }
+  }, [selectedIndex]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    isScrollingRef.current = true;
+    const top = e.currentTarget.scrollTop;
+    const nextIdx = Math.round(top / ITEM_HEIGHT);
+    const clamped = Math.max(0, Math.min(items.length - 1, nextIdx));
+    if (clamped !== selectedIndex) {
+      onSelect(clamped);
+    }
+    setTimeout(() => {
+      isScrollingRef.current = false;
+    }, 120);
+  };
+
+  return (
+    <div className="relative flex-1 flex flex-col items-center">
+      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wider">
+        {unitLabel}
+      </span>
+
+      <div className="relative w-full overflow-hidden rounded-2xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800">
+        {/* แถบไฮไลต์แกนกลางกระบอกหมุน (Selection indicator bar) */}
+        <div
+          aria-hidden="true"
+          className="absolute left-2 right-2 top-[88px] h-[44px] rounded-xl bg-blue-500/15 dark:bg-blue-400/20 border-y border-blue-500/40 pointer-events-none z-0"
+        />
+
+        {/* เงาไล่ระดับบน-ล่างเลียนแบบมิติทรงกระบอกลูกกลิ้ง 3D (เหมือนนาฬิกาปลุก iOS/Android) */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-[88px] bg-gradient-to-b from-slate-50 via-slate-50/80 to-transparent dark:from-slate-950 dark:via-slate-950/80 to-transparent z-10"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[88px] bg-gradient-to-t from-slate-50 via-slate-50/80 to-transparent dark:from-slate-950 dark:via-slate-950/80 to-transparent z-10"
+        />
+
+        {/* กระบอกหมุน (Drum wheel) รองรับ swipe / drag / touch / mouse wheel พร้อม snap กึ่งกลาง */}
+        <div
+          ref={containerRef}
+          onScroll={handleScroll}
+          tabIndex={0}
+          aria-label={unitLabel}
+          className="w-full h-[220px] overflow-y-auto snap-y snap-mandatory select-none py-[88px] touch-pan-y focus:outline-none"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {items.map((item, idx) => {
+            const isSelected = idx === selectedIndex;
+            const dist = Math.abs(idx - selectedIndex);
+            return (
+              <div
+                key={item}
+                onClick={() => {
+                  onSelect(idx);
+                  containerRef.current?.scrollTo({
+                    top: idx * ITEM_HEIGHT,
+                    behavior: 'smooth',
+                  });
+                }}
+                style={{ height: `${ITEM_HEIGHT}px` }}
+                className={`snap-center flex items-center justify-center font-mono cursor-pointer transition-all duration-150 relative z-20 ${
+                  isSelected
+                    ? 'text-2xl font-black text-blue-600 dark:text-blue-400 scale-110 tracking-widest'
+                    : dist === 1
+                    ? 'text-lg font-semibold text-slate-700 dark:text-slate-300 opacity-60 scale-95'
+                    : 'text-sm font-medium text-slate-400 dark:text-slate-600 opacity-30 scale-85'
+                }`}
+              >
+                {item}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export interface AlarmClockWheelPickerModalProps {
+  isOpen: boolean;
+  value: string; // "HH:mm"
+  label?: string;
+  onConfirm: (val: string) => void;
+  onCancel: () => void;
+}
+
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
+export const AlarmClockWheelPickerModal: React.FC<AlarmClockWheelPickerModalProps> = ({
+  isOpen,
+  value,
+  label = 'ตั้งเวลา',
+  onConfirm,
+  onCancel,
+}) => {
+  const [selectedHour, setSelectedHour] = useState<number>(() => {
+    const [h] = (value || '09:00').split(':');
+    return Math.max(0, Math.min(23, Number(h) || 9));
+  });
+
+  const [selectedMinute, setSelectedMinute] = useState<number>(() => {
+    const [, m] = (value || '09:00').split(':');
+    return Math.max(0, Math.min(59, Number(m) || 0));
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      const [h, m] = (value || '09:00').split(':');
+      setSelectedHour(Math.max(0, Math.min(23, Number(h) || 9)));
+      setSelectedMinute(Math.max(0, Math.min(59, Number(m) || 0)));
+    }
+  }, [isOpen, value]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const currentFormatted = `${HOURS[selectedHour]}:${MINUTES[selectedMinute]}`;
+
+  const handleSetQuickPreset = (hhmm: string) => {
+    const [h, m] = hhmm.split(':');
+    setSelectedHour(Math.max(0, Math.min(23, Number(h) || 0)));
+    setSelectedMinute(Math.max(0, Math.min(59, Number(m) || 0)));
+  };
+
+  const handleSetNow = () => {
+    const now = new Date();
+    setSelectedHour(now.getHours());
+    setSelectedMinute(now.getMinutes());
+  };
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`หมุนตั้งเวลา: ${label}`}
+      onClick={onCancel}
+    >
+      <div
+        className="w-full sm:max-w-md bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-toastSlideIn flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* แถบหัวข้อหน้าต่าง */}
+        <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/40">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                {label}
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                เลื่อนหมุนขึ้น–ลงเพื่อเลือกเวลา (เหมือนตั้งเวลาปลุก)
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            aria-label="ปิดหน้าต่าง"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* แถบแสดงเวลาขนาดใหญ่แบบดิจิทัล */}
+        <div className="pt-4 pb-2 px-6 flex flex-col items-center justify-center bg-slate-50/40 dark:bg-slate-950/20">
+          <div className="font-mono text-3xl sm:text-4xl font-black text-blue-600 dark:text-blue-400 tracking-wider tabular-nums px-5 py-1.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 shadow-inner">
+            {currentFormatted}
+            <span className="text-xs font-sans font-bold text-blue-500/80 dark:text-blue-400/80 ml-2">
+              น.
+            </span>
+          </div>
+        </div>
+
+        {/* ลูกกลิ้ง 2 กระบอก: ชั่วโมง และ นาที */}
+        <div className="px-6 py-2 flex items-center justify-center gap-3 bg-white dark:bg-slate-900">
+          <WheelColumn
+            items={HOURS}
+            selectedIndex={selectedHour}
+            onSelect={setSelectedHour}
+            unitLabel="ชั่วโมง (00 – 23)"
+          />
+
+          <div className="font-mono text-3xl font-extrabold text-slate-400 dark:text-slate-600 pt-5 select-none" aria-hidden="true">
+            :
+          </div>
+
+          <WheelColumn
+            items={MINUTES}
+            selectedIndex={selectedMinute}
+            onSelect={setSelectedMinute}
+            unitLabel="นาที (00 – 59)"
+          />
+        </div>
+
+        {/* ปุ่มลัดเวลากดยอดนิยม */}
+        <div className="px-5 py-2.5 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/30">
+          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
+            เวลากดยอดนิยม:
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {['08:30', '09:00', '12:00', '13:00', '16:00', '17:00'].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => handleSetQuickPreset(preset)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition ${
+                  currentFormatted === preset
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {preset}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={handleSetNow}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition inline-flex items-center gap-1"
+            >
+              <Clock className="w-3 h-3" />
+              <span>ตอนนี้</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ปุ่มกดยืนยันหรือยกเลิก */}
+        <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5 bg-white dark:bg-slate-900">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onCancel}
+          >
+            ยกเลิก
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            icon={<Check className="w-4 h-4 stroke-[3]" />}
+            onClick={() => {
+              onConfirm(currentFormatted);
+              onCancel();
+            }}
+          >
+            เลือกเวลานี้ ({currentFormatted} น.)
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+/**
+ * ช่องเวลาแบบ 24 ชั่วโมง (HH:mm) พร้อมระบบหมุนเลื่อนเหมือนนาฬิกาปลุก (Alarm Clock Wheel Picker)
+ * ค่าเริ่มต้น 09:00 หรือเวลาปัจจุบัน พร้อมปุ่มลัด "ตอนนี้" (Now)
+ */
 export const TimeField24: React.FC<TimeField24Props> = ({
   value,
   onChange,
@@ -725,22 +1020,10 @@ export const TimeField24: React.FC<TimeField24Props> = ({
   helperText,
   ...rest
 }) => {
-  const handleChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, '').slice(0, 4);
-    onChange(digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits);
-  };
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const m = value.match(/^(\d{1,2}):?(\d{0,2})$/);
-    if (m) {
-      const h = Math.min(23, Number(m[1]));
-      const min = Math.min(59, Number(m[2] || 0));
-      onChange(`${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`);
-    }
-    onBlur?.(e);
-  };
-
-  const reactId = React.useId();
+  const [isWheelOpen, setIsWheelOpen] = useState(false);
+  const reactId = useId();
   const generatedId = rest.id || `timefield-${reactId}`;
+  const displayValue = value || '09:00';
 
   return (
     <div className="min-w-0">
@@ -775,22 +1058,61 @@ export const TimeField24: React.FC<TimeField24Props> = ({
         )}
       </div>
 
-      <InputField
-        {...rest}
-        id={generatedId}
-        label=""
-        type="text"
-        inputMode="numeric"
-        autoComplete="off"
-        placeholder="เช่น 09:30"
-        maxLength={5}
-        pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        onBlur={handleBlur}
-        error={error}
-        helperText={helperText}
-        className="font-mono tabular-nums-thai"
+      <div className="relative">
+        <button
+          type="button"
+          id={generatedId}
+          onClick={() => setIsWheelOpen(true)}
+          className={`w-full min-h-[44px] px-3.5 py-2 rounded-xl border bg-white dark:bg-slate-900 flex items-center justify-between text-left transition select-none active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+            error
+              ? 'border-red-500 focus-visible:ring-red-500/40'
+              : 'border-slate-300 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500'
+          }`}
+          aria-haspopup="dialog"
+          aria-expanded={isWheelOpen}
+        >
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
+            <span className="font-mono text-base sm:text-lg font-bold text-slate-900 dark:text-white tabular-nums tracking-wider">
+              {displayValue}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-sans">
+              น.
+            </span>
+          </div>
+
+          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/70 hover:bg-blue-100 dark:hover:bg-blue-900/80 px-2.5 py-1 rounded-lg transition inline-flex items-center gap-1 shrink-0">
+            <span>เลื่อนเวลา</span>
+            <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+          </span>
+        </button>
+
+        <input
+          type="hidden"
+          value={displayValue}
+          name={rest.name}
+        />
+      </div>
+
+      {error ? (
+        <p className="mt-1 text-xs text-red-600 dark:text-red-400 font-medium">
+          {error}
+        </p>
+      ) : helperText ? (
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {helperText}
+        </p>
+      ) : null}
+
+      {/* หน้าต่างเลือกเวลาแบบวงล้อลูกกลิ้งเลื่อนเหมือนนาฬิกาปลุก (Alarm Clock Roller Wheel Picker) */}
+      <AlarmClockWheelPickerModal
+        isOpen={isWheelOpen}
+        value={displayValue}
+        label={label}
+        onConfirm={(val) => {
+          onChange(val);
+        }}
+        onCancel={() => setIsWheelOpen(false)}
       />
     </div>
   );
