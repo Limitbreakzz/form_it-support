@@ -8,6 +8,7 @@ import {
   UserCheck,
   CalendarOff,
   UserX,
+  Lock,
 } from 'lucide-react';
 
 export type MemberAttendanceStatus = 'present' | 'leave' | 'absent';
@@ -15,12 +16,13 @@ export type MemberAttendanceStatus = 'present' | 'leave' | 'absent';
 interface SignaturePadFieldProps {
   label: string;
   memberName: string;
-  onMemberNameChange: (name: string) => void;
+  onMemberNameChange?: (name: string) => void;
   value: string; // Base64 PNG Data URL
   onChange: (dataUrl: string) => void;
   error?: string;
   attendanceStatus?: MemberAttendanceStatus;
   onAttendanceStatusChange?: (status: MemberAttendanceStatus) => void;
+  readOnlyName?: boolean;
 }
 
 export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
@@ -32,6 +34,7 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
   error,
   attendanceStatus = 'present',
   onAttendanceStatusChange,
+  readOnlyName = true,
 }) => {
   const [mode, setMode] = useState<'draw' | 'upload'>('draw');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -295,13 +298,16 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
         </div>
       )}
 
-      {/* ชื่อ-นามสกุล สมาชิกในกลุ่ม */}
+      {/* ชื่อ-นามสกุล สมาชิกในกลุ่ม (ล็อคตามตารางเวรช่าง) */}
       <div className="mb-3">
         <label
           htmlFor={memberInputId}
-          className="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
         >
-          ชื่อ - นามสกุล ผู้ปฏิบัติงาน{' '}
+          {readOnlyName && (
+            <Lock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
+          )}
+          <span>ชื่อ - นามสกุล ผู้ปฏิบัติงาน {readOnlyName ? '(ล็อคตามตารางเวร)' : ''}</span>{' '}
           <span className="text-red-500 font-bold" aria-hidden="true">
             *
           </span>
@@ -310,12 +316,18 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
           id={memberInputId}
           type="text"
           required
+          readOnly={readOnlyName}
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={error ? errorId : undefined}
           value={memberName}
-          onChange={(e) => onMemberNameChange(e.target.value)}
+          onChange={(e) => onMemberNameChange?.(e.target.value)}
           placeholder={`ระบุชื่อ - นามสกุล (${label})`}
-          className="w-full min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-base sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          title={readOnlyName ? 'ล็อครายชื่อตามตารางเวรช่าง ไม่สามารถแก้ไขได้' : undefined}
+          className={`w-full min-h-[44px] rounded-xl border px-3.5 py-2 text-base sm:text-sm font-medium transition-colors ${
+            readOnlyName
+              ? 'border-slate-200 dark:border-slate-700/80 bg-slate-100/90 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 cursor-not-allowed select-all'
+              : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+          }`}
         />
       </div>
 

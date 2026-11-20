@@ -70,18 +70,9 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   const memberStorageKey = `it_support_member_names_${sheetKey}_v1`;
 
   const getInitialNames = (): string[] => {
+    // ล้างค่าเก่าที่อาจมีพิมพ์ผิดใน localStorage ทิ้ง เพื่อให้ตรงกับรายชื่อทางการ 100%
     try {
-      const saved = localStorage.getItem(memberStorageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (
-          Array.isArray(parsed) &&
-          parsed.length === memberCount &&
-          !parsed.some((n) => String(n).startsWith('สมาชิกคนที่'))
-        ) {
-          return parsed;
-        }
-      }
+      localStorage.removeItem(memberStorageKey);
     } catch {
       // ignore
     }
@@ -149,8 +140,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       if (memberCount === 2) {
         const r1 = initialEditingRecord as WorkTimeGroup1Record;
         setMemberNames([
-          r1.Member1Name || groupConfig.defaultMembers[0],
-          r1.Member2Name || groupConfig.defaultMembers[1],
+          groupConfig.defaultMembers[0],
+          groupConfig.defaultMembers[1],
         ]);
         const p1 = parseSigAndStatus(r1.Member1Signature);
         const p2 = parseSigAndStatus(r1.Member2Signature);
@@ -159,9 +150,9 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       } else {
         const r3 = initialEditingRecord as WorkTimeGroup2Or3Record;
         setMemberNames([
-          r3.Member1Name || groupConfig.defaultMembers[0],
-          r3.Member2Name || groupConfig.defaultMembers[1],
-          r3.Member3Name || groupConfig.defaultMembers[2] || '',
+          groupConfig.defaultMembers[0],
+          groupConfig.defaultMembers[1],
+          groupConfig.defaultMembers[2] || '',
         ]);
         const p1 = parseSigAndStatus(r3.Member1Signature);
         const p2 = parseSigAndStatus(r3.Member2Signature);
@@ -231,8 +222,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       if (memberCount === 2) {
         const r1 = rec as WorkTimeGroup1Record;
         setMemberNames([
-          r1.Member1Name || 'สมาชิกคนที่ 1',
-          r1.Member2Name || 'สมาชิกคนที่ 2',
+          groupConfig.defaultMembers[0],
+          groupConfig.defaultMembers[1],
         ]);
         const p1 = parseSigAndStatus(r1.Member1Signature);
         const p2 = parseSigAndStatus(r1.Member2Signature);
@@ -241,9 +232,9 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       } else {
         const r3 = rec as WorkTimeGroup2Or3Record;
         setMemberNames([
-          r3.Member1Name || 'สมาชิกคนที่ 1',
-          r3.Member2Name || 'สมาชิกคนที่ 2',
-          r3.Member3Name || 'สมาชิกคนที่ 3',
+          groupConfig.defaultMembers[0],
+          groupConfig.defaultMembers[1],
+          groupConfig.defaultMembers[2] || '',
         ]);
         const p1 = parseSigAndStatus(r3.Member1Signature);
         const p2 = parseSigAndStatus(r3.Member2Signature);
@@ -641,7 +632,9 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                 label="1. ลำดับที่ (รันอัตโนมัติ)"
                 readOnly
                 value={nextSequenceNumber}
-                className="font-mono font-bold text-blue-600 dark:text-blue-400 tabular-nums-thai"
+                icon={<Lock className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                helperText="ระบบรันลำดับต่อเนื่องให้อัตโนมัติและล็อคไว้"
+                className="font-mono font-bold text-blue-600 dark:text-blue-400 tabular-nums-thai cursor-not-allowed bg-slate-100/90 dark:bg-slate-800/80"
               />
 
               <DateField
