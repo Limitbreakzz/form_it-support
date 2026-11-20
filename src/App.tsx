@@ -277,12 +277,12 @@ export function App() {
                 </div>
               </button>
 
-              {/* ป้ายบอกตำแหน่งหน้าปัจจุบันบนหน้าจอแท็บเล็ตและคอมพิวเตอร์ */}
+              {/* ป้ายบอกตำแหน่งหน้าปัจจุบันบนหน้าจอขนาดใหญ่ (XL ขึ้นไป เพื่อไม่ให้เบียดส่วนควบคุมบนจอแท็บเล็ต/แล็ปท็อป) */}
               {(() => {
                 const activeNavItem = navItems.find((item) => item.id === activeTab);
                 if (!activeNavItem) return null;
                 return (
-                  <div className="hidden lg:flex items-center gap-2 pl-3 ml-1 border-l border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 shrink-0">
+                  <div className="hidden xl:flex items-center gap-2 pl-3 ml-1 border-l border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 shrink-0">
                     <span className="text-blue-600 dark:text-blue-400" aria-hidden="true">
                       {activeNavItem.icon}
                     </span>
@@ -292,14 +292,14 @@ export function App() {
               })()}
             </div>
 
-            {/* ปุ่มควบคุมด้านขวา และปุ่ม Hamburger Menu หลัก */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* ปุ่มควบคุมด้านขวา และปุ่ม Hamburger Menu หลัก (จัดระยะแบบ Responsive พอดีทุกขนาดหน้าจอ) */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* สถานะการเชื่อมต่อ Google Sheets */}
               <button
                 type="button"
                 onClick={() => handleNavigate('setup')}
                 title="คลิกเพื่อดูหรือตั้งค่าการเชื่อมต่อ Google Sheets"
-                className={`hidden md:inline-flex items-center gap-2 min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+                className={`hidden md:inline-flex items-center gap-2 min-h-[40px] px-2.5 lg:px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
                   isLoading
                     ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950/60 dark:border-blue-800 dark:text-blue-300'
                     : isConnected
@@ -317,7 +317,7 @@ export function App() {
                   }`}
                   aria-hidden="true"
                 />
-                <span>
+                <span className="hidden lg:inline">
                   {isLoading ? (
                     <span className="inline-flex items-center">
                       กำลังซิงก์ข้อมูล
@@ -347,8 +347,11 @@ export function App() {
               </button>
 
               {/* ข้อมูลโปรไฟล์ผู้ใช้งานและปุ่มออกจากระบบ */}
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
-                <div className="hidden sm:flex items-center gap-2 text-left">
+              <div className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-2 border-l border-slate-200 dark:border-slate-800">
+                <div
+                  className="hidden sm:flex items-center gap-2 text-left"
+                  title={`${currentUser.name} (${currentUser.roleLabelTh})`}
+                >
                   <div
                     className={`w-8 h-8 rounded-xl ${
                       currentUser.avatarColor || 'bg-blue-600'
@@ -356,7 +359,7 @@ export function App() {
                   >
                     {currentUser.name.charAt(0)}
                   </div>
-                  <div className="min-w-0 max-w-[130px]">
+                  <div className="hidden xl:block min-w-0 max-w-[140px]">
                     <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                       {currentUser.name}
                     </div>
@@ -370,10 +373,10 @@ export function App() {
                   onClick={() => setIsConfirmLogoutOpen(true)}
                   title="ออกจากระบบ"
                   aria-label="ออกจากระบบ"
-                  className="min-h-[40px] px-2.5 py-2 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/60 hover:bg-red-100/70 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+                  className="min-h-[40px] px-2.5 sm:px-3 py-2 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/60 hover:bg-red-100/70 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
                 >
                   <LogOut className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                  <span className="hidden md:inline">ออกจากระบบ</span>
+                  <span className="hidden xl:inline">ออกจากระบบ</span>
                 </button>
               </div>
 
@@ -385,7 +388,7 @@ export function App() {
                 aria-haspopup="dialog"
                 aria-label="เปิดแถบเมนูนำทางหลัก"
                 title="เปิดเมนูนำทาง (Navigation Menu)"
-                className="min-h-[40px] min-w-[40px] px-3 py-2 inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                className="min-h-[40px] min-w-[40px] px-2.5 sm:px-3 py-2 inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
               >
                 <Menu className="w-4 h-4 shrink-0" aria-hidden="true" />
                 <span className="hidden sm:inline">เมนูนำทาง</span>
