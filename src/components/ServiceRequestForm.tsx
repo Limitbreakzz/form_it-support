@@ -675,10 +675,10 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                       return (
                         <label
                           key={item.key}
-                          className={`flex items-center gap-3 p-3.5 min-h-[48px] rounded-xl border cursor-pointer select-none transition ${
+                          className={`flex items-center gap-3 p-3.5 min-h-[48px] rounded-xl border cursor-pointer select-none transition-all duration-200 active:scale-[0.99] ${
                             active
-                              ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-950/50 dark:border-blue-500 text-slate-900 dark:text-white font-semibold'
-                              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                              ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-950/50 dark:border-blue-500 text-slate-900 dark:text-white font-semibold shadow-xs'
+                              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                           }`}
                         >
                           <input
@@ -695,14 +695,14 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                             className="sr-only"
                           />
                           <span
-                            className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                            className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all duration-200 ${
                               active
-                                ? 'bg-blue-600 border-blue-600 text-white'
+                                ? 'bg-blue-600 border-blue-600 text-white scale-105'
                                 : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
                             }`}
                             aria-hidden="true"
                           >
-                            {active && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            {active && <Check className="w-3.5 h-3.5 stroke-[3] animate-scaleCheck" />}
                           </span>
                           <span className="text-sm">{item.label}</span>
                         </label>
@@ -832,9 +832,9 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                         return (
                           <label
                             key={item.key}
-                            className={`grid grid-cols-12 items-center px-4 py-3 min-h-[48px] cursor-pointer select-none transition ${
+                            className={`grid grid-cols-12 items-center px-4 py-3 min-h-[48px] cursor-pointer select-none transition-all duration-200 active:scale-[0.99] ${
                               checked
-                                ? 'bg-blue-50/70 dark:bg-blue-950/40 font-semibold text-slate-900 dark:text-white'
+                                ? 'bg-blue-50/80 dark:bg-blue-950/40 font-semibold text-slate-900 dark:text-white'
                                 : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
                             }`}
                           >
@@ -846,14 +846,14 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                                 className="sr-only"
                               />
                               <span
-                                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
+                                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all duration-200 ${
                                   checked
-                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                    ? 'bg-blue-600 border-blue-600 text-white scale-105'
                                     : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
                                 }`}
                                 aria-hidden="true"
                               >
-                                {checked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                                {checked && <Check className="w-3.5 h-3.5 stroke-[3] animate-scaleCheck" />}
                               </span>
                               <span className="text-xs sm:text-sm leading-snug">{item.labelTh}</span>
                             </div>
@@ -878,9 +878,9 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                         return (
                           <label
                             key={item.key}
-                            className={`grid grid-cols-12 items-center px-4 py-3 min-h-[48px] cursor-pointer select-none transition ${
+                            className={`grid grid-cols-12 items-center px-4 py-3 min-h-[48px] cursor-pointer select-none transition-all duration-200 active:scale-[0.99] ${
                               checked
-                                ? 'bg-blue-50/70 dark:bg-blue-950/40 font-semibold text-slate-900 dark:text-white'
+                                ? 'bg-blue-50/80 dark:bg-blue-950/40 font-semibold text-slate-900 dark:text-white'
                                 : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
                             }`}
                           >
@@ -892,14 +892,14 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                                 className="sr-only"
                               />
                               <span
-                                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
+                                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all duration-200 ${
                                   checked
-                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                    ? 'bg-blue-600 border-blue-600 text-white scale-105'
                                     : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
                                 }`}
                                 aria-hidden="true"
                               >
-                                {checked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                                {checked && <Check className="w-3.5 h-3.5 stroke-[3] animate-scaleCheck" />}
                               </span>
                               <span className="text-xs sm:text-sm leading-snug">{item.labelTh}</span>
                             </div>
@@ -990,7 +990,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   return (
                     <label
                       key={idx}
-                      className="flex items-start gap-3 py-1.5 cursor-pointer select-none text-xs sm:text-sm text-slate-700 dark:text-slate-200"
+                      className="flex items-start gap-3 py-1.5 cursor-pointer select-none text-xs sm:text-sm text-slate-700 dark:text-slate-200 active:scale-[0.99] transition-all duration-200"
                     >
                       <input
                         type="checkbox"
@@ -999,14 +999,14 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                         className="sr-only"
                       />
                       <span
-                        className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
+                        className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-all duration-200 ${
                           checked
-                            ? 'bg-blue-600 border-blue-600 text-white'
+                            ? 'bg-blue-600 border-blue-600 text-white scale-105'
                             : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
                         }`}
                         aria-hidden="true"
                       >
-                        {checked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        {checked && <Check className="w-3.5 h-3.5 stroke-[3] animate-scaleCheck" />}
                       </span>
                       <span className="leading-relaxed">{text}</span>
                     </label>

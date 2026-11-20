@@ -345,10 +345,10 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                   role="tab"
                   aria-selected={isSelected}
                   onClick={() => setActiveSheet(key)}
-                  className={`min-h-[44px] shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+                  className={`min-h-[44px] shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 active-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
                     isSelected
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      ? 'bg-blue-600 text-white shadow-md scale-[1.02]'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/80'
                   }`}
                 >
                   <FileSpreadsheet className="w-4 h-4 shrink-0" />
@@ -597,7 +597,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                       return (
                         <tr
                           key={rec.RecordID}
-                          className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition"
+                          className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors duration-150"
                         >
                           <td className="py-3.5 px-4 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap tabular-nums-thai">
                             {rec.ReceiptNumber}
@@ -664,7 +664,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                 onClick={() => setSelectedReceipt(rec)}
                                 title="ดูรายละเอียดใบรับบริการ"
                                 aria-label={`ดูใบรับบริการ ${rec.ReceiptNumber}`}
-                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition"
+                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 active:scale-90"
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
@@ -678,7 +678,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                 }}
                                 title="พิมพ์ใบรับบริการ (A4)"
                                 aria-label={`พิมพ์ใบรับบริการ ${rec.ReceiptNumber}`}
-                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50 inline-flex items-center justify-center transition"
+                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50 inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 active:scale-90"
                               >
                                 <Printer className="w-4 h-4" />
                               </button>
@@ -687,7 +687,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                 onClick={() => setRecordToEdit(rec)}
                                 title="แก้ไขข้อมูล"
                                 aria-label={`แก้ไขใบรับบริการ ${rec.ReceiptNumber}`}
-                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition"
+                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 active:scale-90"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
@@ -702,7 +702,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                 }
                                 title="ลบรายการ"
                                 aria-label={`ลบใบรับบริการ ${rec.ReceiptNumber}`}
-                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition"
+                                className="min-h-[44px] min-w-[44px] p-2.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 active:scale-90"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -929,7 +929,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                       const anyRec = rec as unknown as Record<string, string>;
                       const memberCount = activeSheet === 'GROUP_1' ? 2 : 3;
                       return (
-                        <tr key={rec.RecordID} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                        <tr key={rec.RecordID} className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors duration-150">
                           <td className="py-3 px-4 font-mono font-bold tabular-nums-thai">
                             #{rec.SequenceNo || idx + 1}
                           </td>
@@ -989,7 +989,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                 }
                                 title="ดูรายละเอียดการลงเวลา"
                                 aria-label={`ดูรายละเอียดการลงเวลาลำดับที่ #${rec.SequenceNo || idx + 1}`}
-                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition active:scale-95"
+                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 active:scale-90"
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
@@ -1000,7 +1000,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                 }
                                 title="พิมพ์ใบลงเวลา A4"
                                 aria-label={`พิมพ์ใบลงเวลาลำดับที่ #${rec.SequenceNo || idx + 1}`}
-                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition active:scale-95"
+                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 active:scale-90"
                               >
                                 <Printer className="w-4 h-4" />
                               </button>
@@ -1011,7 +1011,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                 }
                                 title="แก้ไขข้อมูล"
                                 aria-label={`แก้ไขบันทึกเวลาลำดับที่ #${rec.SequenceNo || idx + 1}`}
-                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition active:scale-95"
+                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50 inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 active:scale-90"
                               >
                                 <Edit3 className="w-4 h-4" />
                               </button>
@@ -1026,7 +1026,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                     label: `${WORKSHEET_LABELS_TH[activeSheet]} แถวที่ #${rec.SequenceNo}`,
                                   })
                                 }
-                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition active:scale-95"
+                                className="min-h-[36px] min-w-[36px] p-2 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 inline-flex items-center justify-center transition-transform duration-150 hover:scale-110 active:scale-90"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>

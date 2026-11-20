@@ -419,7 +419,53 @@ pre code {
   animation: ambientPulse2 10s ease-in-out infinite alternate;
 }
 
+/* ==========================================================================
+   Micro-Interactions & Animation Utilities (Emil Kowalski / Impeccable)
+   GPU-accelerated, tactile feedback with prefers-reduced-motion support
+   ========================================================================== */
+.hover-lift {
+  transition: transform 200ms var(--ease-out-expo), box-shadow 200ms var(--ease-out-expo);
+  will-change: transform;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.active-press {
+  transition: transform 120ms var(--ease-out-expo);
+}
+
+.active-press:active {
+  transform: scale(0.97);
+}
+
+@keyframes springPop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.8;
+  }
+  60% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-springPop {
+  animation: springPop 220ms var(--ease-out-expo) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .hover-lift:hover {
+    transform: none !important;
+  }
+  .active-press:active {
+    transform: none !important;
+  }
+  .animate-springPop,
   .animate-toastSlideIn,
   .animate-scaleCheck,
   .animate-runningDot1,

@@ -220,7 +220,7 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
             title="มาปฏิบัติงานตามปกติ (ต้องเซ็นชื่อ)"
             aria-pressed={attendanceStatus === 'present'}
             onClick={() => onAttendanceStatusChange?.('present')}
-            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
+            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
               attendanceStatus === 'present'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -234,7 +234,7 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
             title="ลาปฏิบัติงาน (ไม่ต้องเซ็นชื่อ)"
             aria-pressed={attendanceStatus === 'leave'}
             onClick={() => onAttendanceStatusChange?.('leave')}
-            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 ${
+            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 ${
               attendanceStatus === 'leave'
                 ? 'bg-amber-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -248,7 +248,7 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
             title="ขาด / ไม่มาปฏิบัติงาน (ไม่ต้องเซ็นชื่อ)"
             aria-pressed={attendanceStatus === 'absent'}
             onClick={() => onAttendanceStatusChange?.('absent')}
-            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 ${
+            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 ${
               attendanceStatus === 'absent'
                 ? 'bg-red-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -272,7 +272,7 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
               type="button"
               aria-pressed={mode === 'draw'}
               onClick={() => setMode('draw')}
-              className={`min-h-[32px] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+              className={`min-h-[32px] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
                 mode === 'draw'
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -285,7 +285,7 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
               type="button"
               aria-pressed={mode === 'upload'}
               onClick={() => setMode('upload')}
-              className={`min-h-[32px] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+              className={`min-h-[32px] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
                 mode === 'upload'
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'

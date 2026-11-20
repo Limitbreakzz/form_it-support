@@ -1366,9 +1366,9 @@ export const CheckboxCard: React.FC<CheckboxCardProps> = ({
   subtitle,
 }) => (
   <label
-    className={`group flex items-start gap-3 p-3.5 min-h-[54px] rounded-xl border cursor-pointer select-none transition-colors duration-150 focus-within:ring-2 focus-within:ring-blue-500/40 ${
+    className={`group flex items-start gap-3 p-3.5 min-h-[54px] rounded-xl border cursor-pointer select-none transition-all duration-200 active:scale-[0.99] focus-within:ring-2 focus-within:ring-blue-500/40 ${
       checked
-        ? 'border-blue-600 bg-blue-50/70 dark:bg-blue-950/40 dark:border-blue-500 text-slate-900 dark:text-white'
+        ? 'border-blue-600 bg-blue-50/80 dark:bg-blue-950/40 dark:border-blue-500 text-slate-900 dark:text-white shadow-xs'
         : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
     }`}
   >
@@ -1379,14 +1379,14 @@ export const CheckboxCard: React.FC<CheckboxCardProps> = ({
       className="sr-only"
     />
     <div
-      className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${
+      className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center border transition-all duration-200 shrink-0 ${
         checked
-          ? 'bg-blue-600 border-blue-600 text-white'
+          ? 'bg-blue-600 border-blue-600 text-white scale-105 shadow-xs'
           : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 group-hover:border-blue-400'
       }`}
       aria-hidden="true"
     >
-      {checked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+      {checked && <Check className="w-3.5 h-3.5 stroke-[3] animate-scaleCheck" />}
     </div>
     <div className="flex-1 min-w-0 font-sans">
       <div className="text-sm font-semibold leading-relaxed">{title}</div>

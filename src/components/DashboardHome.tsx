@@ -96,14 +96,14 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
           <button
             type="button"
             onClick={() => onNavigate('service-request')}
-            className="p-4 sm:p-5 text-left hover:bg-slate-100/80 dark:hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+            className="group p-4 sm:p-5 text-left hover:bg-slate-100/90 dark:hover:bg-slate-900 transition-all duration-200 active-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 1. แจ้งซ่อม / ขอรับบริการ
               </span>
               <ClipboardCheck
-                className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0"
+                className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-200"
                 aria-hidden="true"
               />
             </div>
@@ -113,22 +113,23 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">รายการแจ้งซ่อม</span>
             </div>
-            <div className="mt-1 text-xs text-blue-700 dark:text-blue-400 font-medium truncate">
-              ใบรับบริการ IT Support
+            <div className="mt-1 text-xs text-blue-700 dark:text-blue-400 font-medium truncate flex items-center gap-1">
+              <span>ใบรับบริการ IT Support</span>
+              <ArrowRight className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
             </div>
           </button>
 
           <button
             type="button"
             onClick={() => onNavigate('work-time-group-1')}
-            className="p-4 sm:p-5 text-left hover:bg-slate-100/80 dark:hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+            className="group p-4 sm:p-5 text-left hover:bg-slate-100/90 dark:hover:bg-slate-900 transition-all duration-200 active-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                 2. บันทึกเวลา ช่างวันจันทร์
               </span>
               <Users
-                className="w-4 h-4 text-slate-600 dark:text-slate-400 shrink-0"
+                className="w-4 h-4 text-slate-600 dark:text-slate-400 shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-200"
                 aria-hidden="true"
               />
             </div>
@@ -138,22 +139,23 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">แถว (สมาชิก 2 คน)</span>
             </div>
-            <div className="mt-1 text-xs text-slate-700 dark:text-slate-400 font-medium truncate">
-              Work Time - Monday Technician
+            <div className="mt-1 text-xs text-slate-700 dark:text-slate-400 font-medium truncate flex items-center gap-1">
+              <span>Work Time - Monday Technician</span>
+              <ArrowRight className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
             </div>
           </button>
 
           <button
             type="button"
             onClick={() => onNavigate('work-time-group-2')}
-            className="p-4 sm:p-5 text-left sm:border-t lg:border-t-0 border-slate-200 dark:border-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+            className="group p-4 sm:p-5 text-left sm:border-t lg:border-t-0 border-slate-200 dark:border-slate-800 hover:bg-slate-100/90 dark:hover:bg-slate-900 transition-all duration-200 active-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
                 3. บันทึกเวลา ช่างวันอังคาร
               </span>
               <Users
-                className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0"
+                className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-200"
                 aria-hidden="true"
               />
             </div>
@@ -163,22 +165,23 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">แถว (สมาชิก 2 คน)</span>
             </div>
-            <div className="mt-1 text-xs text-emerald-800 dark:text-emerald-400 font-medium truncate">
-              Work Time - Tuesday Technician
+            <div className="mt-1 text-xs text-emerald-800 dark:text-emerald-400 font-medium truncate flex items-center gap-1">
+              <span>Work Time - Tuesday Technician</span>
+              <ArrowRight className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
             </div>
           </button>
 
           <button
             type="button"
             onClick={() => onNavigate('work-time-group-3')}
-            className="p-4 sm:p-5 text-left sm:border-t lg:border-t-0 border-slate-200 dark:border-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+            className="group p-4 sm:p-5 text-left sm:border-t lg:border-t-0 border-slate-200 dark:border-slate-800 hover:bg-slate-100/90 dark:hover:bg-slate-900 transition-all duration-200 active-press focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-amber-800 dark:group-hover:text-amber-400 transition-colors">
                 4. บันทึกเวลา ช่างวันศุกร์
               </span>
               <Users
-                className="w-4 h-4 text-amber-800 dark:text-amber-400 shrink-0"
+                className="w-4 h-4 text-amber-800 dark:text-amber-400 shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-200"
                 aria-hidden="true"
               />
             </div>
@@ -188,8 +191,9 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">แถว (สมาชิก 3 คน)</span>
             </div>
-            <div className="mt-1 text-xs text-amber-800 dark:text-amber-400 font-medium truncate">
-              Work Time - Friday Technician
+            <div className="mt-1 text-xs text-amber-800 dark:text-amber-400 font-medium truncate flex items-center gap-1">
+              <span>Work Time - Friday Technician</span>
+              <ArrowRight className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
             </div>
           </button>
         </div>
@@ -198,18 +202,18 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
       {/* ส่วนเลือกแบบฟอร์มหลัก (แยก 2 หมวดหมู่ชัดเจนตามข้อกำหนด โดยไม่ซ้อนการ์ดไว้ในการ์ด) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* หมวดหมู่ที่ 1: แบบฟอร์มขอรับบริการ IT Support */}
-        <Card className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between">
+        <Card className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between hover-lift group">
           <div className="space-y-5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3.5">
                 <div
-                  className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 border border-blue-200/70 dark:border-blue-800/70 shrink-0 mt-0.5"
+                  className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 border border-blue-200/70 dark:border-blue-800/70 shrink-0 mt-0.5 group-hover:scale-105 group-hover:bg-blue-100/80 dark:group-hover:bg-blue-900/50 transition-all duration-200"
                   aria-hidden="true"
                 >
-                  <Wrench className="w-6 h-6" />
+                  <Wrench className="w-6 h-6 group-hover:rotate-6 transition-transform duration-200" />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     แจ้งซ่อมและขอรับบริการ IT Support (สำหรับผู้รับบริการ)
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
@@ -252,27 +256,27 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
               type="button"
               variant="secondary"
               size="lg"
-              className="w-full"
+              className="w-full group/btn"
               onClick={() => onNavigate('service-request')}
             >
               <span>กรอกใบแจ้งซ่อม / ขอรับบริการ</span>
-              <ArrowRight className="w-4 h-4" aria-hidden="true" />
+              <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-200" aria-hidden="true" />
             </Button>
           </div>
         </Card>
 
         {/* หมวดหมู่ที่ 2: แบบบันทึกเวลาปฏิบัติงาน IT Support */}
-        <Card className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between">
+        <Card className="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between hover-lift group">
           <div className="space-y-5">
             <div className="flex items-start gap-3.5">
               <div
-                className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shrink-0 mt-0.5"
+                className="p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shrink-0 mt-0.5 group-hover:scale-105 group-hover:bg-slate-200/80 dark:group-hover:bg-slate-700/80 transition-all duration-200"
                 aria-hidden="true"
               >
-                <Clock className="w-6 h-6" />
+                <Clock className="w-6 h-6 group-hover:rotate-12 transition-transform duration-200" />
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   ลงเวลาปฏิบัติงานช่างเทคนิคประจำวัน (สำหรับทีมช่าง IT Support)
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
@@ -316,11 +320,11 @@ export const DashboardHome: React.FC<DashboardHomeProps> = ({
                         type="button"
                         variant="outline"
                         size="md"
-                        className="shrink-0 sm:w-auto w-full"
+                        className="shrink-0 sm:w-auto w-full group/btn"
                         onClick={() => onNavigate(group.tabId)}
                       >
                         <span>ลงเวลา{group.dayTechnicianLabel}</span>
-                        <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform duration-200" aria-hidden="true" />
                       </Button>
                     </div>
                   );
