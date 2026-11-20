@@ -148,7 +148,7 @@ export const REQUESTED_SERVICES_TH: Record<string, string> = {
   'Printer troubleshooting': 'แก้ไขปัญหาเครื่องพิมพ์',
   'Data backup and recovery': 'สำรองและกู้คืนข้อมูลสำคัญ',
   'Hardware upgrade': 'เปลี่ยนอุปกรณ์คอมพิวเตอร์ (นำชิ้นส่วนมาเอง)',
-  Other: 'บริการอื่นๆ / รายละเอียดเพิ่มเติม',
+  Other: 'บริการอื่น ๆ',
 };
 
 export const ACKNOWLEDGMENT_ITEMS = [

@@ -489,17 +489,37 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                       </div>
 
                       {services.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {services.map((srv) => (
-                            <Badge
-                              key={srv}
-                              variant="blue"
-                              icon={<Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />}
-                              className="text-[11px] py-0.5 px-2"
-                            >
-                              {getServiceThaiLabel(srv)}
-                            </Badge>
-                          ))}
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap gap-1">
+                            {services.map((srv) => {
+                              const label =
+                                srv === 'Other' && rec.OtherServiceText && rec.OtherServiceText !== '-'
+                                  ? (() => {
+                                      const m = rec.OtherServiceText.match(/^บริการอื่น:\s*(.*?)(?:\s*\|\s*รายละเอียด:.*)?$/);
+                                      return m
+                                        ? `บริการอื่น ๆ: ${m[1]}`
+                                        : rec.OtherServiceText.startsWith('รายละเอียด:')
+                                        ? 'บริการอื่น ๆ'
+                                        : `บริการอื่น ๆ: ${rec.OtherServiceText}`;
+                                    })()
+                                  : getServiceThaiLabel(srv);
+                              return (
+                                <Badge
+                                  key={srv}
+                                  variant="blue"
+                                  icon={<Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />}
+                                  className="text-[11px] py-0.5 px-2"
+                                >
+                                  {label}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                          {rec.OtherServiceText && rec.OtherServiceText !== '-' && (
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                              {rec.OtherServiceText}
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -626,17 +646,37 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                             </div>
                           </td>
                           <td className="py-3.5 px-4 max-w-xs">
-                            <div className="flex flex-wrap gap-1">
-                              {services.map((srv) => (
-                                <Badge
-                                  key={srv}
-                                  variant="blue"
-                                  icon={<Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />}
-                                  className="text-xs py-0.5 px-2"
-                                >
-                                  {getServiceThaiLabel(srv)}
-                                </Badge>
-                              ))}
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap gap-1">
+                                {services.map((srv) => {
+                                  const label =
+                                    srv === 'Other' && rec.OtherServiceText && rec.OtherServiceText !== '-'
+                                      ? (() => {
+                                          const m = rec.OtherServiceText.match(/^บริการอื่น:\s*(.*?)(?:\s*\|\s*รายละเอียด:.*)?$/);
+                                          return m
+                                            ? `บริการอื่น ๆ: ${m[1]}`
+                                            : rec.OtherServiceText.startsWith('รายละเอียด:')
+                                            ? 'บริการอื่น ๆ'
+                                            : `บริการอื่น ๆ: ${rec.OtherServiceText}`;
+                                        })()
+                                      : getServiceThaiLabel(srv);
+                                  return (
+                                    <Badge
+                                      key={srv}
+                                      variant="blue"
+                                      icon={<Check className="w-3 h-3 text-blue-600 dark:text-blue-400" />}
+                                      className="text-xs py-0.5 px-2"
+                                    >
+                                      {label}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                              {rec.OtherServiceText && rec.OtherServiceText !== '-' && (
+                                <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                                  {rec.OtherServiceText}
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="py-3.5 px-4 text-center whitespace-nowrap">

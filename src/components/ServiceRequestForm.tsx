@@ -101,6 +101,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
   // 3. เลือกบริการที่ต้องการ (เลือกได้มากกว่า 1 รายการ)
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [otherServiceText, setOtherServiceText] = useState('');
+  const [additionalDetailsText, setAdditionalDetailsText] = useState('');
   const [estimatedCost, setEstimatedCost] = useState<string>('');
 
   // 4. การยืนยันก่อนให้บริการและการรับทราบ
@@ -143,8 +144,38 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       setDeviceSerialNumber(editingRecord.DeviceSerialNumber || '');
       setProblemDescription(editingRecord.ProblemDescription);
       setEstimatedCost(editingRecord.AdditionalDetails || '');
-      setSelectedServices(parseServicesList(editingRecord.RequestedServices));
-      setOtherServiceText(editingRecord.OtherServiceText || '');
+
+      const parsedServices = parseServicesList(editingRecord.RequestedServices);
+      // กรอง 'Other' ออกจาก selectedServices เสมอ เพื่อให้ selectedServices มีเฉพาะ 10 รายการในแคตตาล็อก
+      setSelectedServices(parsedServices.filter((s) => s !== 'Other'));
+
+      const rawOther = editingRecord.OtherServiceText || '';
+      if (rawOther && rawOther !== '-') {
+        const match = rawOther.match(/^บริการอื่น:\s*(.*?)\s*\|\s*รายละเอียด:\s*(.*)$/);
+        if (match) {
+          setOtherServiceText(match[1]);
+          setAdditionalDetailsText(match[2]);
+        } else if (rawOther.startsWith('รายละเอียด:')) {
+          setOtherServiceText('');
+          setAdditionalDetailsText(rawOther.replace(/^รายละเอียด:\s*/, ''));
+        } else if (rawOther.startsWith('บริการอื่น:')) {
+          setOtherServiceText(rawOther.replace(/^บริการอื่น:\s*/, ''));
+          setAdditionalDetailsText('');
+        } else {
+          // หากเป็นข้อความเดิมจากระบบเวอร์ชันก่อนหน้า
+          if (parsedServices.includes('Other')) {
+            setOtherServiceText(rawOther);
+            setAdditionalDetailsText('');
+          } else {
+            setOtherServiceText('');
+            setAdditionalDetailsText(rawOther);
+          }
+        }
+      } else {
+        setOtherServiceText('');
+        setAdditionalDetailsText('');
+      }
+
       setErrors({});
     }
   }, [editingRecord]);
@@ -214,7 +245,9 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     if (!problemDescription.trim()) {
       nextErrors.problemDescription = 'กรุณาอธิบายอาการเสียหรือปัญหาที่พบ เช่น เปิดไม่ติด จอฟ้า หรือเครื่องช้า';
     }
-    if (selectedServices.length === 0 && !otherServiceText.trim()) {
+    const hasAnySelected = selectedServices.length > 0;
+    const hasOtherService = otherServiceText.trim() !== '' && otherServiceText.trim() !== '-';
+    if (!hasAnySelected && !hasOtherService) {
       nextErrors.selectedServices = 'กรุณาเลือกบริการที่ต้องการอย่างน้อย 1 รายการ หรือพิมพ์ระบุในช่อง "บริการอื่น ๆ"';
     }
 
@@ -224,10 +257,18 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
 
   const buildCurrentDraftRecord = (): ServiceRequestRecord => {
     const nowIso = new Date().toISOString();
-    const finalServices = [...selectedServices];
-    if (otherServiceText.trim() && !finalServices.includes('Other')) {
+    const cleanOther = otherServiceText.trim();
+    const cleanDetails = additionalDetailsText.trim();
+
+    // กรอง 'Other' ออกจาก selectedServices เสมอ เพื่อไม่ให้มี 'Other' แฝงอยู่โดยไม่ตั้งใจ
+    const finalServices = selectedServices.filter((s) => s !== 'Other');
+    
+    // เพิ่ม 'Other' ใน RequestedServices ก็ต่อเมื่อผู้ใช้กรอกช่อง "บริการอื่น ๆ" จริง ๆ เท่านั้น
+    const hasOther = cleanOther !== '' && cleanOther !== '-';
+    if (hasOther) {
       finalServices.push('Other');
     }
+
     const computedCost =
       estimatedCost.trim() !== ''
         ? `${estimatedCost.trim()} บาท`
@@ -237,6 +278,16 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     const normalizedPhone = cleanPhone
       ? (/^[689]\d{8}$/.test(cleanPhone) ? `0${cleanPhone}` : cleanPhone)
       : '-';
+
+    // จัดรูปแบบ OtherServiceText ให้เก็บทั้งบริการอื่นและรายละเอียดเพิ่มเติมอย่างเป็นระเบียบ
+    let combinedOtherText = '-';
+    if (hasOther && cleanDetails) {
+      combinedOtherText = `บริการอื่น: ${cleanOther} | รายละเอียด: ${cleanDetails}`;
+    } else if (hasOther) {
+      combinedOtherText = cleanOther;
+    } else if (cleanDetails) {
+      combinedOtherText = `รายละเอียด: ${cleanDetails}`;
+    }
 
     return {
       RecordID: editingRecord ? editingRecord.RecordID : generateRecordId(),
@@ -253,7 +304,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
       ProblemDescription: problemDescription.trim() || '-',
       AdditionalDetails: computedCost,
       RequestedServices: JSON.stringify(finalServices),
-      OtherServiceText: otherServiceText.trim() || '-',
+      OtherServiceText: combinedOtherText,
       ReceiverName: receiverName.trim() || '-',
       CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
       UpdatedAt: nowIso,
@@ -358,6 +409,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
         setEstimatedCost('');
         setSelectedServices([]);
         setOtherServiceText('');
+        setAdditionalDetailsText('');
       }
 
       if (shouldPrintImmediately) {
@@ -863,33 +915,49 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   </p>
                 )}
 
-                {/* แถวระบุ "บริการอื่น ๆ / รายละเอียดเพิ่มเติม" และ "ประเมินค่าใช้จ่าย ____ บาท" ตามต้นฉบับ */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 pt-2">
-                  <div className="sm:col-span-8">
-                    <InputField
-                      label="บริการอื่น ๆ / รายละเอียดเพิ่มเติม"
-                      name="otherServiceText"
-                      optionalText="ถ้ามี"
-                      value={otherServiceText}
-                      onChange={(e) => {
-                        setOtherServiceText(e.target.value);
-                        if (errors.selectedServices) {
-                          setErrors({ ...errors, selectedServices: '' });
-                        }
-                      }}
-                      placeholder="ระบุบริการอื่น ๆ หรือรายละเอียดเพิ่มเติม..."
-                    />
+                {/* แยก 2 ส่วนชัดเจน: บริการอื่น ๆ (ระบุเอง) กับ รายละเอียดเพิ่มเติมของงานที่เลือก และประเมินค่าใช้จ่าย */}
+                <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                    <div className="sm:col-span-8">
+                      <InputField
+                        label="บริการอื่น ๆ (กรณีไม่มีในรายการข้างต้น)"
+                        name="otherServiceText"
+                        optionalText="ถ้ามี"
+                        value={otherServiceText}
+                        onChange={(e) => {
+                          setOtherServiceText(e.target.value);
+                          if (errors.selectedServices) {
+                            setErrors({ ...errors, selectedServices: '' });
+                          }
+                        }}
+                        placeholder="เช่น ซ่อมพาวเวอร์ซัพพลาย, กู้ข้อมูลฮาร์ดดิสก์, เดินสายแลน..."
+                        helperText="ระบุเฉพาะเมื่อต้องการบริการนอกเหนือจาก 10 รายการด้านบน"
+                      />
+                    </div>
+                    <div className="sm:col-span-4">
+                      <InputField
+                        label="ประเมินค่าใช้จ่าย (บาท)"
+                        name="estimatedCost"
+                        type="text"
+                        inputMode="numeric"
+                        value={estimatedCost}
+                        onChange={(e) => setEstimatedCost(e.target.value)}
+                        placeholder="คำนวณอัตโนมัติ (บาท)"
+                        helperText="คำนวณตามรายการ หรือแก้ไขเองได้"
+                        className="font-mono font-bold text-blue-700 dark:text-blue-400 tabular-nums-thai"
+                      />
+                    </div>
                   </div>
-                  <div className="sm:col-span-4">
+
+                  <div>
                     <InputField
-                      label="ประเมินค่าใช้จ่าย (บาท)"
-                      name="estimatedCost"
-                      type="text"
-                      inputMode="numeric"
-                      value={estimatedCost}
-                      onChange={(e) => setEstimatedCost(e.target.value)}
-                      placeholder="คำนวณอัตโนมัติ (บาท)"
-                      className="font-mono font-bold text-blue-700 dark:text-blue-400 tabular-nums-thai"
+                      label="รายละเอียดเพิ่มเติมเกี่ยวกับงานที่เลือก (หมายเหตุ/สเปกที่ต้องการ)"
+                      name="additionalDetailsText"
+                      optionalText="ถ้ามี"
+                      value={additionalDetailsText}
+                      onChange={(e) => setAdditionalDetailsText(e.target.value)}
+                      placeholder="เช่น ระบุเวอร์ชัน Windows ที่ต้องการ, ขอโปรแกรมเสริม, สำรองข้อมูลไดรฟ์ D ไว้แล้ว..."
+                      helperText="บันทึกรายละเอียดเสริมสำหรับช่างผู้ซ่อม (จะไม่นับเป็นบริการอื่น)"
                     />
                   </div>
                 </div>
