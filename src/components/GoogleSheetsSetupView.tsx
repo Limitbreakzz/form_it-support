@@ -6,16 +6,13 @@ import {
   Copy,
   Database,
   ExternalLink,
-  KeyRound,
   RefreshCw,
   Server,
   ShieldAlert,
   BookOpen,
 } from 'lucide-react';
 import {
-  getAdminPasscode,
   getConfiguredGasUrl,
-  setAdminPasscode,
   setConfiguredGasUrl,
   syncPendingRecordsToCloud,
   testGoogleSheetsConnection,
@@ -40,8 +37,6 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
     text: string;
   } | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
-  const [newPin, setNewPin] = useState<string>(() => getAdminPasscode());
-  const [pinSaved, setPinSaved] = useState(false);
 
   const handleSaveAndTest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,18 +106,6 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
       setTimeout(() => setCopiedCode(false), 2500);
     } catch {
       // ignore
-    }
-  };
-
-  const handleUpdatePin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPin.trim().length >= 4) {
-      setAdminPasscode(newPin.trim());
-      setPinSaved(true);
-      toast.success('บันทึกรหัสผ่านเจ้าหน้าที่ใหม่เรียบร้อยแล้ว');
-      setTimeout(() => setPinSaved(false), 2500);
-    } else {
-      toast.error('รหัสผ่านต้องมีความยาวอย่างน้อย 4 หลัก');
     }
   };
 
@@ -295,7 +278,7 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
           </div>
         </Card>
 
-        {/* คู่มือการติดตั้งและตั้งค่ารหัสผ่านเจ้าหน้าที่ */}
+        {/* คู่มือการติดตั้ง Google Apps Script */}
         <div className="lg:col-span-5 space-y-6">
           <Card className="p-6 space-y-4">
             <h2 className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
@@ -338,43 +321,6 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
                 กดยืนยันการ Deploy และคัดลอก <strong>Web App URL</strong> มาวางในช่องทางด้านซ้าย
               </li>
             </ol>
-          </Card>
-
-          {/* ตั้งค่ารหัสผ่านเจ้าหน้าที่ */}
-          <Card className="p-6 space-y-3">
-            <h2 className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
-              <KeyRound className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true" />
-              <span>ตั้งค่ารหัสผ่านเจ้าหน้าที่ (PIN)</span>
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              ใช้สำหรับยืนยันสิทธิ์ก่อนแก้ไขหรือลบรายการข้อมูลในระบบ (ค่าเริ่มต้น: 1234)
-            </p>
-            <form onSubmit={handleUpdatePin} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 pt-1">
-              <div className="flex-1">
-                <label htmlFor="admin-pin-setup-input" className="sr-only">
-                  รหัสผ่านเจ้าหน้าที่ใหม่ (อย่างน้อย 4 หลัก)
-                </label>
-                <input
-                  id="admin-pin-setup-input"
-                  type="text"
-                  value={newPin}
-                  onChange={(e) => setNewPin(e.target.value)}
-                  minLength={4}
-                  required
-                  placeholder="อย่างน้อย 4 หลัก"
-                  className="w-full min-h-[44px] rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-base sm:text-sm font-mono text-slate-900 dark:text-white focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-              <Button
-                type="submit"
-                variant={pinSaved ? 'success' : 'secondary'}
-                size="md"
-                className="shrink-0"
-                icon={pinSaved ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : undefined}
-              >
-                {pinSaved ? 'บันทึกแล้ว' : 'เปลี่ยนรหัส PIN'}
-              </Button>
-            </form>
           </Card>
         </div>
       </div>
