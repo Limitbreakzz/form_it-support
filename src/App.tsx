@@ -4,14 +4,17 @@ import {
   Database,
   FolderKanban,
   LayoutDashboard,
+  LogOut,
   Menu,
   Moon,
   ShieldCheck,
   Sun,
+  User,
   Wrench,
 } from 'lucide-react';
 import {
   AnyWorkTimeRecord,
+  AuthUser,
   NavigationTab,
   ServiceRequestRecord,
   SheetKey,
@@ -32,7 +35,9 @@ import { ServiceRequestForm } from './components/ServiceRequestForm';
 import { WorkTimeGroupForm } from './components/WorkTimeGroupForm';
 import { SubmissionHistoryView } from './components/SubmissionHistoryView';
 import { GoogleSheetsSetupView } from './components/GoogleSheetsSetupView';
-import { Badge, Drawer, RunningDots, ToastContainer } from './components/ui/DesignSystem';
+import { LoginView } from './components/LoginView';
+import { ConfirmDialog } from './components/ConfirmDialog';
+import { Badge, Drawer, RunningDots, toast, ToastContainer } from './components/ui/DesignSystem';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
@@ -52,6 +57,36 @@ export function App() {
     sheetKey: 'GROUP_1' | 'GROUP_2' | 'GROUP_3';
     record: AnyWorkTimeRecord;
   } | null>(null);
+
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+    try {
+      const saved = localStorage.getItem('it_support_auth_user_v1');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+  const [isConfirmLogoutOpen, setIsConfirmLogoutOpen] = useState(false);
+
+  const handleLoginSuccess = (user: AuthUser) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('it_support_auth_user_v1', JSON.stringify(user));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('it_support_auth_user_v1');
+    } catch {
+      // ignore
+    }
+    toast.info('ออกจากระบบเรียบร้อยแล้ว');
+  };
 
   useEffect(() => {
     const root = document.documentElement;
@@ -190,6 +225,19 @@ export function App() {
     },
   ];
 
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100">
+        <LoginView
+          onLoginSuccess={handleLoginSuccess}
+          darkMode={darkMode}
+          onToggleDarkMode={() => setDarkMode((prev) => !prev)}
+        />
+        <ToastContainer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       {/* แถบความคืบหน้าการซิงก์ข้อมูลบางเบาระดับพรีเมียม (Linear/Vercel standard) */}
@@ -297,6 +345,37 @@ export function App() {
                 )}
               </button>
 
+              {/* ข้อมูลโปรไฟล์ผู้ใช้งานและปุ่มออกจากระบบ */}
+              <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+                <div className="hidden sm:flex items-center gap-2 text-left">
+                  <div
+                    className={`w-8 h-8 rounded-xl ${
+                      currentUser.avatarColor || 'bg-blue-600'
+                    } text-white flex items-center justify-center text-xs font-bold shadow-sm shrink-0`}
+                  >
+                    {currentUser.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0 max-w-[130px]">
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {currentUser.name}
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                      {currentUser.roleLabelTh}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmLogoutOpen(true)}
+                  title="ออกจากระบบ"
+                  aria-label="ออกจากระบบ"
+                  className="min-h-[40px] px-2.5 py-2 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/60 hover:bg-red-100/70 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+                >
+                  <LogOut className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  <span className="hidden md:inline">ออกจากระบบ</span>
+                </button>
+              </div>
+
               {/* ปุ่มเมนูนำทางหลักสำหรับเปิด Slide-out Navigation Drawer */}
               <button
                 type="button"
@@ -331,6 +410,37 @@ export function App() {
         }
         footer={
           <div className="space-y-3">
+            {/* ข้อมูลโปรไฟล์และปุ่มออกจากระบบสำหรับหน้าจอมือถือ */}
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className={`w-9 h-9 rounded-xl ${
+                    currentUser.avatarColor || 'bg-blue-600'
+                  } text-white flex items-center justify-center text-sm font-bold shadow-sm shrink-0`}
+                >
+                  {currentUser.name.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    {currentUser.name}
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    {currentUser.roleLabelTh}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setIsConfirmLogoutOpen(true);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 transition shrink-0"
+              >
+                ออกจากระบบ
+              </button>
+            </div>
+
             <div className="flex items-center justify-between gap-2.5">
               <button
                 type="button"
@@ -595,6 +705,21 @@ export function App() {
           </div>
         </div>
       </footer>
+
+      {/* หน้าต่างยืนยันการออกจากระบบ */}
+      <ConfirmDialog
+        isOpen={isConfirmLogoutOpen}
+        title="ยืนยันการออกจากระบบ"
+        description={`คุณต้องการออกจากระบบการใช้งานศูนย์บริการ IT Support ในชื่อ "${currentUser?.name}" ใช่หรือไม่?`}
+        confirmLabel="ยืนยันออกจากระบบ"
+        cancelLabel="ยกเลิก"
+        variant="danger"
+        onConfirm={() => {
+          setIsConfirmLogoutOpen(false);
+          handleLogout();
+        }}
+        onCancel={() => setIsConfirmLogoutOpen(false)}
+      />
 
       {/* ระบบแจ้งเตือนลอยตัว Toast Feedback ทั่วทั้งระบบ */}
       <ToastContainer />

@@ -371,3 +371,70 @@ export function getAllTechnicians(): TechnicianOption[] {
   }
   return DEFAULT_TECHNICIANS;
 }
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  name: string;
+  role: 'admin' | 'technician';
+  roleLabelTh: string;
+  shift?: string;
+  avatarColor?: string;
+}
+
+export const PRESET_ACCOUNTS: (AuthUser & { password: string; description: string })[] = [
+  {
+    id: 'user-admin',
+    username: 'admin',
+    password: 'admin1234',
+    name: 'ผู้ดูแลระบบ IT Support',
+    role: 'admin',
+    roleLabelTh: 'ผู้ดูแลระบบ (Admin)',
+    description: 'สิทธิ์เต็ม จัดการใบรับบริการ เวลาทำงาน และตั้งค่าระบบ',
+    avatarColor: 'bg-blue-600',
+  },
+  {
+    id: 'user-tech-1',
+    username: 'watcharakorn',
+    password: '1234',
+    name: 'วัชรากร คำชมภู',
+    role: 'technician',
+    roleLabelTh: 'ช่างวันจันทร์',
+    shift: 'ช่างวันจันทร์ (กลุ่มที่ 1)',
+    description: 'บันทึกเวลาทำงานวันจันทร์และรับเรื่องแจ้งซ่อม',
+    avatarColor: 'bg-indigo-600',
+  },
+  {
+    id: 'user-tech-2',
+    username: 'weerayuth',
+    password: '1234',
+    name: 'วีรยุทธ เปลี่ยนแก้ว',
+    role: 'technician',
+    roleLabelTh: 'ช่างวันอังคาร',
+    shift: 'ช่างวันอังคาร (กลุ่มที่ 2)',
+    description: 'บันทึกเวลาทำงานวันอังคารและรับเรื่องแจ้งซ่อม',
+    avatarColor: 'bg-emerald-600',
+  },
+  {
+    id: 'user-tech-3',
+    username: 'patitta',
+    password: '1234',
+    name: 'ปทิตตา แจ่มเล็ก',
+    role: 'technician',
+    roleLabelTh: 'ช่างวันศุกร์',
+    shift: 'ช่างวันศุกร์ (กลุ่มที่ 3)',
+    description: 'บันทึกเวลาทำงานวันศุกร์และรับเรื่องแจ้งซ่อม',
+    avatarColor: 'bg-amber-600',
+  },
+  {
+    id: 'user-staff',
+    username: 'staff',
+    password: '1234',
+    name: 'เจ้าหน้าที่ศูนย์บริการ IT Support',
+    role: 'technician',
+    roleLabelTh: 'เจ้าหน้าที่ประจำศูนย์',
+    shift: 'ช่าง IT Support',
+    description: 'บัญชีเจ้าหน้าที่ทั่วไปสำหรับการปฏิบัติงานประจำวัน',
+    avatarColor: 'bg-sky-600',
+  },
+];
