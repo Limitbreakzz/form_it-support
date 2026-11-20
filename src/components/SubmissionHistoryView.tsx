@@ -47,6 +47,34 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { SkeletonLoader } from './SkeletonLoader';
 import { Badge, Button, Card, Drawer, toast } from './ui/DesignSystem';
 
+function formatOtherTextPreview(raw: string, hasOtherBadge: boolean, isDesktop = false): React.ReactNode {
+  if (!raw || raw === '-') return null;
+  const textSize = isDesktop ? 'text-xs' : 'text-[11px]';
+  const m = raw.match(/^บริการอื่น:\s*(.*?)\s*\|\s*รายละเอียด:\s*(.*)$/);
+  if (m) {
+    const detail = m[2]?.trim();
+    if (!detail || detail === '-') return null;
+    return (
+      <div className={`${textSize} text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2`}>
+        <span className="font-semibold text-slate-600 dark:text-slate-300">รายละเอียด:</span> {detail}
+      </div>
+    );
+  }
+  if (raw.startsWith('รายละเอียด:')) {
+    const detail = raw.replace(/^รายละเอียด:\s*/, '').trim();
+    if (!detail || detail === '-') return null;
+    return (
+      <div className={`${textSize} text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2`}>
+        <span className="font-semibold text-slate-600 dark:text-slate-300">รายละเอียด:</span> {detail}
+      </div>
+    );
+  }
+  if (!hasOtherBadge && !raw.startsWith('บริการอื่น:')) {
+    return <div className={`${textSize} text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2`}>{raw}</div>;
+  }
+  return null;
+}
+
 interface SubmissionHistoryViewProps {
   sheetsData: AllSheetsData;
   isLoading: boolean;
@@ -515,11 +543,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                               );
                             })}
                           </div>
-                          {rec.OtherServiceText && rec.OtherServiceText !== '-' && (
-                            <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
-                              {rec.OtherServiceText}
-                            </div>
-                          )}
+                          {formatOtherTextPreview(rec.OtherServiceText, services.includes('Other'))}
                         </div>
                       )}
 
@@ -672,11 +696,7 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                   );
                                 })}
                               </div>
-                              {rec.OtherServiceText && rec.OtherServiceText !== '-' && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                                  {rec.OtherServiceText}
-                                </div>
-                              )}
+                              {formatOtherTextPreview(rec.OtherServiceText, services.includes('Other'), true)}
                             </div>
                           </td>
                           <td className="py-3.5 px-4 text-center whitespace-nowrap">

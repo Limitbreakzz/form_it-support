@@ -530,6 +530,29 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
       ? record.AdditionalDetails.replace(/\s*บาท\s*$/, '')
       : String(autoCost);
 
+  // แยกข้อมูลบริการอื่น ๆ และรายละเอียดเพิ่มเติมออกจากกันเพื่อพิมพ์บนเอกสาร A4 อย่างเป็นสัดส่วน
+  let otherServiceDisplay = '—';
+  let additionalDetailsDisplay = '—';
+
+  const rawOtherText = record.OtherServiceText || '';
+  if (rawOtherText && rawOtherText !== '-') {
+    const match = rawOtherText.match(/^บริการอื่น:\s*(.*?)\s*\|\s*รายละเอียด:\s*(.*)$/);
+    if (match) {
+      otherServiceDisplay = match[1]?.trim() || '—';
+      additionalDetailsDisplay = match[2]?.trim() || '—';
+    } else if (rawOtherText.startsWith('รายละเอียด:')) {
+      additionalDetailsDisplay = rawOtherText.replace(/^รายละเอียด:\s*/, '').trim() || '—';
+    } else if (rawOtherText.startsWith('บริการอื่น:')) {
+      otherServiceDisplay = rawOtherText.replace(/^บริการอื่น:\s*/, '').trim() || '—';
+    } else {
+      if (selectedServices.includes('Other')) {
+        otherServiceDisplay = rawOtherText.trim() || '—';
+      } else {
+        additionalDetailsDisplay = rawOtherText.trim() || '—';
+      }
+    }
+  }
+
   // แยกข้อมูลอุปกรณ์อื่น ๆ (Other) ออกจากยี่ห้อรุ่นและอาการเสียอย่างชัดเจน ไม่ให้ทับซ้อนกัน
   let otherDeviceDisplayText = record.OtherDeviceText || '';
   let cleanDeviceBrandModel = record.DeviceBrandModel || '';
@@ -776,22 +799,33 @@ const ServiceRequestPaperDocument: React.FC<{ record: ServiceRequestRecord }> = 
             </table>
           </div>
 
-          {/* บรรทัด บริการอื่น ๆ / รายละเอียดเพิ่มเติม และ ประเมินค่าใช้จ่าย ____ บาท */}
-          <div className="mt-1 flex flex-wrap items-baseline justify-between gap-3 px-1 text-xs">
-            <div className="flex items-baseline gap-1.5 flex-1 min-w-[220px]">
+          {/* บรรทัด บริการอื่น ๆ, ประเมินค่าใช้จ่าย และรายละเอียดเพิ่มเติม แยกชัดเจนตามแบบฟอร์ม */}
+          <div className="mt-1 space-y-1 px-1 text-xs">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <div className="flex items-baseline gap-1.5 flex-1 min-w-[200px]">
+                <span className="font-bold text-slate-900 shrink-0">
+                  บริการอื่น ๆ :
+                </span>
+                <span className="flex-1 border-b border-slate-500 px-2 pb-0.5 font-medium text-slate-900">
+                  {otherServiceDisplay}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1.5 shrink-0">
+                <span className="font-bold text-slate-900">ประเมินค่าใช้จ่าย</span>
+                <span className="inline-block min-w-[80px] text-center border-b border-slate-500 px-2 pb-0.5 font-bold text-[#1e3a8a] tabular-nums-thai">
+                  {displayCost}
+                </span>
+                <span className="font-bold text-slate-900">บาท</span>
+              </div>
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
               <span className="font-bold text-slate-900 shrink-0">
-                บริการอื่น ๆ / รายละเอียดเพิ่มเติม :
+                รายละเอียดเพิ่มเติม :
               </span>
               <span className="flex-1 border-b border-slate-500 px-2 pb-0.5 font-medium text-slate-900">
-                {record.OtherServiceText || '—'}
+                {additionalDetailsDisplay}
               </span>
-            </div>
-            <div className="flex items-baseline gap-1.5 shrink-0">
-              <span className="font-bold text-slate-900">ประเมินค่าใช้จ่าย</span>
-              <span className="inline-block min-w-[80px] text-center border-b border-slate-500 px-2 pb-0.5 font-bold text-[#1e3a8a] tabular-nums-thai">
-                {displayCost}
-              </span>
-              <span className="font-bold text-slate-900">บาท</span>
             </div>
           </div>
         </section>
