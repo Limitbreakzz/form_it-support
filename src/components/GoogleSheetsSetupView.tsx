@@ -6,6 +6,7 @@ import {
   Copy,
   Database,
   ExternalLink,
+  Info,
   RefreshCw,
   Server,
   ShieldAlert,
@@ -296,8 +297,12 @@ export const GoogleSheetsSetupView: React.FC<GoogleSheetsSetupViewProps> = ({
             </ol>
           </div>
 
-          <div className="p-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 text-xs text-blue-800 dark:text-blue-300 leading-relaxed">
-            💡 <strong>ข้อแนะนำ:</strong> หากมีการแก้ไขโค้ด Code.gs ในภายหลัง ให้กด Deploy เวอร์ชันใหม่ (Manage deployments → New version) เสมอ เพื่อให้ระบบอัปเดตการทำงาน
+          <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+            <Info className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <span className="font-bold text-slate-900 dark:text-white">คำแนะนำ:</span>{' '}
+              หากแก้ไขโค้ดในภายหลัง ให้กดเผยแพร่เวอร์ชันใหม่เสมอ เพื่อให้ระบบอัปเดตข้อมูลล่าสุด
+            </div>
           </div>
         </Card>
       </div>

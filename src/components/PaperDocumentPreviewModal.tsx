@@ -7,6 +7,7 @@ import {
   Edit3,
   FileDown,
   FileText,
+  Info,
   Maximize2,
   Minimize2,
   Monitor,
@@ -335,8 +336,11 @@ export const PaperDocumentPreviewModal: React.FC<PaperDocumentPreviewModalProps>
       {/* แจ้งเตือนเมื่อเปิดใน In-App Browser เช่น Facebook Messenger หรือ LINE บน iOS/Android */}
       {isInAppBrowser && (
         <div className="w-full bg-amber-50 dark:bg-amber-950/80 border-b border-amber-200 dark:border-amber-800 px-4 py-2.5 text-xs text-amber-800 dark:text-amber-200 text-center no-print">
-          <p className="max-w-4xl mx-auto">
-            💡 <strong>เปิดผ่านแอป Messenger / LINE:</strong> คุณสามารถดูและตรวจสอบเอกสาร A4 บนหน้านี้ได้เต็มรูปแบบ หากต้องการสั่งพิมพ์ไปยังเครื่องพิมพ์โดยตรง แนะนำให้แตะปุ่มเมนู <strong>(...)</strong> ที่มุมขวาบนของแอป แล้วเลือก <strong>&quot;เปิดใน Safari (Open in Browser)&quot;</strong>
+          <p className="max-w-4xl mx-auto flex items-center justify-center gap-2">
+            <Info className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <span>
+              <strong>เปิดผ่านแอป Messenger หรือ LINE:</strong> คุณสามารถดูเอกสาร A4 บนหน้านี้ได้เต็มรูปแบบ หากต้องการสั่งพิมพ์โดยตรง แนะนำให้แตะปุ่มเมนู <strong>(...)</strong> ที่มุมขวาบน แล้วเลือก <strong>เปิดในเบราว์เซอร์</strong>
+            </span>
           </p>
         </div>
       )}
