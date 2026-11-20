@@ -12,6 +12,7 @@ import {
   User,
   Wrench,
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   AnyWorkTimeRecord,
   AuthUser,
@@ -556,133 +557,143 @@ export function App() {
         </div>
       </Drawer>
 
-      {/* พื้นที่แสดงเนื้อหาหลัก */}
+      {/* พื้นที่แสดงเนื้อหาหลัก พร้อมการเปลี่ยนหน้าจอแบบ Framer Motion */}
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 focus:outline-none"
+        className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 focus:outline-none overflow-x-hidden"
       >
-        {activeTab === 'dashboard' && (
-          isLoading &&
-          sheetsData.REQUESTS.length +
-            sheetsData.GROUP_1.length +
-            sheetsData.GROUP_2.length +
-            sheetsData.GROUP_3.length ===
-            0 ? (
-            <DashboardSkeleton />
-          ) : (
-            <DashboardHome
-              sheetsData={sheetsData}
-              isConnected={isConnected}
-              isLoading={isLoading}
-              onNavigate={handleNavigate}
-            />
-          )
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {activeTab === 'dashboard' && (
+              isLoading &&
+              sheetsData.REQUESTS.length +
+                sheetsData.GROUP_1.length +
+                sheetsData.GROUP_2.length +
+                sheetsData.GROUP_3.length ===
+                0 ? (
+                <DashboardSkeleton />
+              ) : (
+                <DashboardHome
+                  sheetsData={sheetsData}
+                  isConnected={isConnected}
+                  isLoading={isLoading}
+                  onNavigate={handleNavigate}
+                />
+              )
+            )}
 
-        {activeTab === 'service-request' && (
-          <ServiceRequestForm
-            existingRecords={sheetsData.REQUESTS}
-            editingRecord={editingServiceRequest}
-            onCancelEdit={() => {
-              setEditingServiceRequest(null);
-              handleNavigate('history');
-            }}
-            onSaveRecord={handleSaveServiceRequest}
-            onBackToDashboard={() => {
-              setEditingServiceRequest(null);
-              handleNavigate('dashboard');
-            }}
-          />
-        )}
+            {activeTab === 'service-request' && (
+              <ServiceRequestForm
+                existingRecords={sheetsData.REQUESTS}
+                editingRecord={editingServiceRequest}
+                onCancelEdit={() => {
+                  setEditingServiceRequest(null);
+                  handleNavigate('history');
+                }}
+                onSaveRecord={handleSaveServiceRequest}
+                onBackToDashboard={() => {
+                  setEditingServiceRequest(null);
+                  handleNavigate('dashboard');
+                }}
+              />
+            )}
 
-        {activeTab === 'work-time-group-1' && (
-          <WorkTimeGroupForm
-            groupConfig={WORK_TIME_GROUPS.GROUP_1}
-            records={sheetsData.GROUP_1}
-            initialEditingRecord={
-              editingWorkTimeRecord?.sheetKey === 'GROUP_1'
-                ? editingWorkTimeRecord.record
-                : null
-            }
-            onCancelEdit={() => setEditingWorkTimeRecord(null)}
-            onSaveWorkRecord={handleSaveWorkTimeRecord}
-            onDeleteWorkRecord={handleDeleteRecord}
-            onBackToDashboard={() => {
-              setEditingWorkTimeRecord(null);
-              handleNavigate('dashboard');
-            }}
-          />
-        )}
+            {activeTab === 'work-time-group-1' && (
+              <WorkTimeGroupForm
+                groupConfig={WORK_TIME_GROUPS.GROUP_1}
+                records={sheetsData.GROUP_1}
+                initialEditingRecord={
+                  editingWorkTimeRecord?.sheetKey === 'GROUP_1'
+                    ? editingWorkTimeRecord.record
+                    : null
+                }
+                onCancelEdit={() => setEditingWorkTimeRecord(null)}
+                onSaveWorkRecord={handleSaveWorkTimeRecord}
+                onDeleteWorkRecord={handleDeleteRecord}
+                onBackToDashboard={() => {
+                  setEditingWorkTimeRecord(null);
+                  handleNavigate('dashboard');
+                }}
+              />
+            )}
 
-        {activeTab === 'work-time-group-2' && (
-          <WorkTimeGroupForm
-            groupConfig={WORK_TIME_GROUPS.GROUP_2}
-            records={sheetsData.GROUP_2}
-            initialEditingRecord={
-              editingWorkTimeRecord?.sheetKey === 'GROUP_2'
-                ? editingWorkTimeRecord.record
-                : null
-            }
-            onCancelEdit={() => setEditingWorkTimeRecord(null)}
-            onSaveWorkRecord={handleSaveWorkTimeRecord}
-            onDeleteWorkRecord={handleDeleteRecord}
-            onBackToDashboard={() => {
-              setEditingWorkTimeRecord(null);
-              handleNavigate('dashboard');
-            }}
-          />
-        )}
+            {activeTab === 'work-time-group-2' && (
+              <WorkTimeGroupForm
+                groupConfig={WORK_TIME_GROUPS.GROUP_2}
+                records={sheetsData.GROUP_2}
+                initialEditingRecord={
+                  editingWorkTimeRecord?.sheetKey === 'GROUP_2'
+                    ? editingWorkTimeRecord.record
+                    : null
+                }
+                onCancelEdit={() => setEditingWorkTimeRecord(null)}
+                onSaveWorkRecord={handleSaveWorkTimeRecord}
+                onDeleteWorkRecord={handleDeleteRecord}
+                onBackToDashboard={() => {
+                  setEditingWorkTimeRecord(null);
+                  handleNavigate('dashboard');
+                }}
+              />
+            )}
 
-        {activeTab === 'work-time-group-3' && (
-          <WorkTimeGroupForm
-            groupConfig={WORK_TIME_GROUPS.GROUP_3}
-            records={sheetsData.GROUP_3}
-            initialEditingRecord={
-              editingWorkTimeRecord?.sheetKey === 'GROUP_3'
-                ? editingWorkTimeRecord.record
-                : null
-            }
-            onCancelEdit={() => setEditingWorkTimeRecord(null)}
-            onSaveWorkRecord={handleSaveWorkTimeRecord}
-            onDeleteWorkRecord={handleDeleteRecord}
-            onBackToDashboard={() => {
-              setEditingWorkTimeRecord(null);
-              handleNavigate('dashboard');
-            }}
-          />
-        )}
+            {activeTab === 'work-time-group-3' && (
+              <WorkTimeGroupForm
+                groupConfig={WORK_TIME_GROUPS.GROUP_3}
+                records={sheetsData.GROUP_3}
+                initialEditingRecord={
+                  editingWorkTimeRecord?.sheetKey === 'GROUP_3'
+                    ? editingWorkTimeRecord.record
+                    : null
+                }
+                onCancelEdit={() => setEditingWorkTimeRecord(null)}
+                onSaveWorkRecord={handleSaveWorkTimeRecord}
+                onDeleteWorkRecord={handleDeleteRecord}
+                onBackToDashboard={() => {
+                  setEditingWorkTimeRecord(null);
+                  handleNavigate('dashboard');
+                }}
+              />
+            )}
 
-        {activeTab === 'history' && (
-          <SubmissionHistoryView
-            sheetsData={sheetsData}
-            isLoading={isLoading}
-            onRefresh={loadSheetsData}
-            onEditServiceRequest={(rec) => {
-              setEditingServiceRequest(rec);
-              handleNavigate('service-request');
-            }}
-            onEditWorkTimeRecord={(sheetKey, rec) => {
-              setEditingWorkTimeRecord({ sheetKey, record: rec });
-              handleNavigate(
-                sheetKey === 'GROUP_1'
-                  ? 'work-time-group-1'
-                  : sheetKey === 'GROUP_2'
-                  ? 'work-time-group-2'
-                  : 'work-time-group-3'
-              );
-            }}
-            onDeleteRecord={handleDeleteRecord}
-            onNavigate={handleNavigate}
-          />
-        )}
+            {activeTab === 'history' && (
+              <SubmissionHistoryView
+                sheetsData={sheetsData}
+                isLoading={isLoading}
+                onRefresh={loadSheetsData}
+                onEditServiceRequest={(rec) => {
+                  setEditingServiceRequest(rec);
+                  handleNavigate('service-request');
+                }}
+                onEditWorkTimeRecord={(sheetKey, rec) => {
+                  setEditingWorkTimeRecord({ sheetKey, record: rec });
+                  handleNavigate(
+                    sheetKey === 'GROUP_1'
+                      ? 'work-time-group-1'
+                      : sheetKey === 'GROUP_2'
+                      ? 'work-time-group-2'
+                      : 'work-time-group-3'
+                  );
+                }}
+                onDeleteRecord={handleDeleteRecord}
+                onNavigate={handleNavigate}
+              />
+            )}
 
-        {activeTab === 'setup' && (
-          <GoogleSheetsSetupView
-            isConnected={isConnected}
-            onConnectionUpdated={loadSheetsData}
-          />
-        )}
+            {activeTab === 'setup' && (
+              <GoogleSheetsSetupView
+                isConnected={isConnected}
+                onConnectionUpdated={loadSheetsData}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* ส่วนท้ายเว็บไซต์ (ซ่อนขณะพิมพ์) */}

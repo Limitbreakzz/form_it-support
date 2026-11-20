@@ -13,6 +13,7 @@ import {
   Wrench,
   Sparkles,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { AuthUser, PRESET_ACCOUNTS } from '../types';
 import { Button, Card, toast } from './ui/DesignSystem';
 
@@ -159,9 +160,22 @@ export const LoginView: React.FC<LoginViewProps> = ({
         </button>
       </div>
 
-      {/* 4. กล่องการ์ดเข้าสู่ระบบจัดกึ่งกลางหน้าจออย่างสมบูรณ์แบบ พร้อมแอนิเมชันเปิดหน้าจอ */}
+      {/* 4. กล่องการ์ดเข้าสู่ระบบจัดกึ่งกลางหน้าจออย่างสมบูรณ์แบบ พร้อมแอนิเมชันเปิดหน้าจอ Framer Motion */}
       <div className="relative z-10 w-full max-w-[430px] my-auto">
-        <div className={`space-y-6 animate-loginCard ${isShaking ? 'animate-shake' : ''}`}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.94, y: 24 }}
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: 0,
+            x: isShaking ? [-8, 8, -6, 6, -3, 3, 0] : 0,
+          }}
+          transition={{
+            x: isShaking ? { duration: 0.4 } : undefined,
+            default: { type: 'spring', damping: 25, stiffness: 320 },
+          }}
+          className="space-y-6"
+        >
           {/* ส่วนหัวแบรนด์ศูนย์บริการ IT Support */}
           <div className="text-center space-y-3">
             <div className="relative inline-flex items-center justify-center">
@@ -314,7 +328,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" aria-hidden="true" />
             <span>เชื่อมต่อกับ Google Sheets อย่างปลอดภัย (256-bit SSL)</span>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

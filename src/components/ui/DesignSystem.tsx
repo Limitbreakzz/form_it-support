@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertCircle, Calendar, Check, CheckCircle2, ChevronDown, Clock, Info, User, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 /**
  * ============================================================================
@@ -1434,8 +1435,6 @@ export const Drawer: React.FC<DrawerProps> = ({
   children,
   closeOnBackdropClick = true,
 }) => {
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  const [isVisible, setIsVisible] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -1450,17 +1449,60 @@ export const Drawer: React.FC<DrawerProps> = ({
   useEffect(() => {
     if (isOpen) {
       previousFocusRef.current = document.activeElement as HTMLElement | null;
-      setShouldRender(true);
-      const raf = requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setIsVisible(true);
-        });
-      });
-      return () => cancelAnimationFrame(raf);
-    } else {
-      setIsVisible(false);
-      const timer = setTimeout(() => {
-        setShouldRender(false);
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      const focusTimer = setTimeout(() => {
+        if (closeButtonRef.current) {
+          closeButtonRef.current.focus();
+          return;
+        }
+        if (!panelRef.current) return;
+        const focusables = panelRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length > 0) {
+          focusables[0].focus();
+        } else {
+          panelRef.current.focus();
+        }
+      }, 50);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          onCloseRef.current();
+          return;
+        }
+
+        if (e.key === 'Tab' && panelRef.current) {
+          const focusables = Array.from(
+            panelRef.current.querySelectorAll<HTMLElement>(
+              'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )
+          );
+          if (focusables.length === 0) {
+            e.preventDefault();
+            return;
+          }
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        clearTimeout(focusTimer);
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
         if (
           previousFocusRef.current &&
           document.body.contains(previousFocusRef.current) &&
@@ -1468,73 +1510,9 @@ export const Drawer: React.FC<DrawerProps> = ({
         ) {
           previousFocusRef.current.focus();
         }
-      }, 240);
-      return () => clearTimeout(timer);
+      };
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!shouldRender) return;
-
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    // Focus the close button or first interactive element once when the drawer opens
-    const focusTimer = setTimeout(() => {
-      if (closeButtonRef.current) {
-        closeButtonRef.current.focus();
-        return;
-      }
-      if (!panelRef.current) return;
-      const focusables = panelRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusables.length > 0) {
-        focusables[0].focus();
-      } else {
-        panelRef.current.focus();
-      }
-    }, 50);
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        onCloseRef.current();
-        return;
-      }
-
-      if (e.key === 'Tab' && panelRef.current) {
-        const focusables = Array.from(
-          panelRef.current.querySelectorAll<HTMLElement>(
-            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-          )
-        );
-        if (focusables.length === 0) {
-          e.preventDefault();
-          return;
-        }
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      clearTimeout(focusTimer);
-      document.body.style.overflow = prevOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [shouldRender]);
-
-  if (!shouldRender) return null;
 
   const sizeClasses: Record<DrawerSize, string> = {
     sm: 'w-[88vw] max-w-[360px]',
@@ -1548,96 +1526,104 @@ export const Drawer: React.FC<DrawerProps> = ({
       ? 'left-0 border-r border-slate-200 dark:border-slate-800'
       : 'right-0 border-l border-slate-200 dark:border-slate-800';
 
-  const translateClasses = isVisible
-    ? 'translate-x-0'
-    : position === 'left'
-    ? '-translate-x-full'
-    : 'translate-x-full';
+  const initialX = position === 'left' ? '-100%' : '100%';
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[95] overflow-hidden no-print"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      aria-describedby={subtitle ? subtitleId : undefined}
-    >
-      {/* Semi-transparent Backdrop with click-outside-to-close */}
-      <div
-        aria-hidden="true"
-        onClick={() => {
-          if (closeOnBackdropClick) {
-            onClose();
-          }
-        }}
-        className={`fixed inset-0 bg-slate-950/55 backdrop-blur-[2px] transition-opacity duration-200 ease-out motion-reduce:transition-none ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-[95] overflow-hidden no-print"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={subtitle ? subtitleId : undefined}
+        >
+          {/* Semi-transparent Backdrop with framer-motion fade */}
+          <motion.div
+            key="drawer-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            aria-hidden="true"
+            onClick={() => {
+              if (closeOnBackdropClick) {
+                onClose();
+              }
+            }}
+            className="fixed inset-0 bg-slate-950/55 backdrop-blur-[2px]"
+          />
 
-      {/* Drawer Panel */}
-      <div
-        ref={panelRef}
-        tabIndex={-1}
-        className={`fixed inset-y-0 ${positionClasses} w-full ${sizeClasses[size]} bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-[0_20px_25px_-5px_rgba(15,23,42,0.2)] flex flex-col justify-between outline-none transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none ${translateClasses}`}
-      >
-        {/* Sticky Drawer Header */}
-        <header className="px-5 sm:px-6 py-4 sm:py-5 bg-slate-50/90 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3.5 shrink-0">
-          <div className="flex items-start gap-3.5 min-w-0">
-            {icon && (
-              <div
-                className="p-2.5 sm:p-3 rounded-xl bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 border border-blue-200/70 dark:border-blue-800/70 shrink-0 mt-0.5"
-                aria-hidden="true"
-              >
-                {icon}
-              </div>
-            )}
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2
-                  id={titleId}
-                  className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white leading-snug"
-                >
-                  {title}
-                </h2>
-                {badge}
-              </div>
-              {subtitle && (
-                <p
-                  id={subtitleId}
-                  className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed"
-                >
-                  {subtitle}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <button
-            ref={closeButtonRef}
-            type="button"
-            title="ปิดแถบหน้าต่างด้านข้าง (Esc)"
-            aria-label="ปิดแถบหน้าต่างด้านข้าง (Esc)"
-            onClick={onClose}
-            className="min-w-[44px] min-h-[44px] p-2.5 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-700 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 shrink-0"
+          {/* Drawer Panel with framer-motion spring physics */}
+          <motion.div
+            key="drawer-panel"
+            ref={panelRef}
+            tabIndex={-1}
+            initial={{ x: initialX }}
+            animate={{ x: 0 }}
+            exit={{ x: initialX }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            className={`fixed inset-y-0 ${positionClasses} w-full ${sizeClasses[size]} bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-[0_20px_25px_-5px_rgba(15,23,42,0.2)] flex flex-col justify-between outline-none`}
           >
-            <X className="w-5 h-5" aria-hidden="true" />
-          </button>
-        </header>
+            {/* Sticky Drawer Header */}
+            <header className="px-5 sm:px-6 py-4 sm:py-5 bg-slate-50/90 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-3.5 shrink-0">
+              <div className="flex items-start gap-3.5 min-w-0">
+                {icon && (
+                  <div
+                    className="p-2.5 sm:p-3 rounded-xl bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 border border-blue-200/70 dark:border-blue-800/70 shrink-0 mt-0.5"
+                    aria-hidden="true"
+                  >
+                    {icon}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2
+                      id={titleId}
+                      className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white leading-snug"
+                    >
+                      {title}
+                    </h2>
+                    {badge}
+                  </div>
+                  {subtitle && (
+                    <p
+                      id={subtitleId}
+                      className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed"
+                    >
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-        {/* Scrollable Drawer Body */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 sm:px-6 py-5 space-y-5">
-          {children}
+              <button
+                ref={closeButtonRef}
+                type="button"
+                title="ปิดแถบหน้าต่างด้านข้าง (Esc)"
+                aria-label="ปิดแถบหน้าต่างด้านข้าง (Esc)"
+                onClick={onClose}
+                className="min-w-[44px] min-h-[44px] p-2.5 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-700 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 shrink-0"
+              >
+                <X className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </header>
+
+            {/* Scrollable Drawer Body */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 sm:px-6 py-5 space-y-5">
+              {children}
+            </div>
+
+            {/* Optional Sticky Drawer Footer */}
+            {footer && (
+              <footer className="px-5 sm:px-6 py-4 bg-slate-50/90 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 shrink-0">
+                {footer}
+              </footer>
+            )}
+          </motion.div>
         </div>
-
-        {/* Optional Sticky Drawer Footer */}
-        {footer && (
-          <footer className="px-5 sm:px-6 py-4 bg-slate-50/90 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 shrink-0">
-            {footer}
-          </footer>
-        )}
-      </div>
-    </div>,
+      )}
+    </AnimatePresence>,
     document.body
   );
 };
@@ -1787,66 +1773,73 @@ export const ToastContainer: React.FC = () => {
       role="region"
       aria-label="การแจ้งเตือนของระบบ"
     >
-      {toasts.map((item) => (
-        <div
-          key={item.id}
-          role="status"
-          aria-live="polite"
-          className="pointer-events-auto rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-2xl p-4 flex items-start gap-3.5 animate-toastSlideIn transition-all duration-200"
-        >
-          <div
-            className={`p-2 rounded-xl shrink-0 ${
-              item.type === 'success'
-                ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/80'
-                : item.type === 'error'
-                ? 'bg-red-50 dark:bg-red-950/70 text-red-600 dark:text-red-400 border border-red-200/80 dark:border-red-800/80'
-                : 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/80'
-            }`}
+      <AnimatePresence>
+        {toasts.map((item) => (
+          <motion.div
+            key={item.id}
+            layout
+            initial={{ opacity: 0, y: -20, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, y: -10, transition: { duration: 0.16 } }}
+            transition={{ type: 'spring', damping: 26, stiffness: 360 }}
+            role="status"
+            aria-live="polite"
+            className="pointer-events-auto rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 shadow-2xl p-4 flex items-start gap-3.5"
           >
-            {item.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 stroke-[2.2]" />
-            ) : item.type === 'error' ? (
-              <AlertCircle className="w-5 h-5 stroke-[2.2]" />
-            ) : (
-              <Info className="w-5 h-5 stroke-[2.2]" />
-            )}
-          </div>
+            <div
+              className={`p-2 rounded-xl shrink-0 ${
+                item.type === 'success'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800/80'
+                  : item.type === 'error'
+                  ? 'bg-red-50 dark:bg-red-950/70 text-red-600 dark:text-red-400 border border-red-200/80 dark:border-red-800/80'
+                  : 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/80'
+              }`}
+            >
+              {item.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 stroke-[2.2]" />
+              ) : item.type === 'error' ? (
+                <AlertCircle className="w-5 h-5 stroke-[2.2]" />
+              ) : (
+                <Info className="w-5 h-5 stroke-[2.2]" />
+              )}
+            </div>
 
-          <div className="flex-1 min-w-0 pt-0.5">
-            {item.title && (
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                {item.title}
-              </h4>
-            )}
-            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-              {item.message}
-            </p>
+            <div className="flex-1 min-w-0 pt-0.5">
+              {item.title && (
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                  {item.title}
+                </h4>
+              )}
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                {item.message}
+              </p>
 
-            {item.action && (
-              <button
-                type="button"
-                onClick={() => {
-                  item.action?.onClick();
-                  toast.dismiss(item.id);
-                }}
-                className="mt-2.5 min-h-[36px] px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-sm inline-flex items-center gap-1.5 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-              >
-                {item.action.label}
-              </button>
-            )}
-          </div>
+              {item.action && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    item.action?.onClick();
+                    toast.dismiss(item.id);
+                  }}
+                  className="mt-2.5 min-h-[36px] px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-semibold shadow-sm inline-flex items-center gap-1.5 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                >
+                  {item.action.label}
+                </button>
+              )}
+            </div>
 
-          <button
-            type="button"
-            onClick={() => toast.dismiss(item.id)}
-            title="ปิดการแจ้งเตือน"
-            aria-label="ปิดการแจ้งเตือน"
-            className="p-1 -mr-1 -mt-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      ))}
+            <button
+              type="button"
+              onClick={() => toast.dismiss(item.id)}
+              title="ปิดการแจ้งเตือน"
+              aria-label="ปิดการแจ้งเตือน"
+              className="p-1 -mr-1 -mt-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>,
     document.body
   );
