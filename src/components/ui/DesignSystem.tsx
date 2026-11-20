@@ -1361,7 +1361,11 @@ export const ToastContainer: React.FC = () => {
 
   return createPortal(
     <div
-      className="fixed bottom-5 right-4 sm:right-6 z-[200] flex flex-col gap-2.5 max-w-sm w-[calc(100vw-2rem)] pointer-events-none no-print"
+      className="fixed top-4 sm:top-6 right-4 sm:right-6 z-[200] flex flex-col gap-2.5 max-w-sm w-[calc(100vw-2rem)] pointer-events-none no-print"
+      style={{
+        top: 'max(1rem, env(safe-area-inset-top, 1rem))',
+        right: 'max(1rem, env(safe-area-inset-right, 1rem))',
+      }}
       role="region"
       aria-label="การแจ้งเตือนของระบบ"
     >
