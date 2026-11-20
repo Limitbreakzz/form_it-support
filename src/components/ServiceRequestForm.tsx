@@ -613,7 +613,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                 />
 
                 <SelectField
-                  label="ผู้รับเรื่อง (ช่าง IT)"
+                  label="ช่างผู้รับเรื่อง"
                   name="receiverName"
                   requiredMark
                   value={receiverName}
@@ -756,7 +756,7 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   />
 
                   <InputField
-                    label="หมายเลขเครื่อง (Serial Number / รหัสครุภัณฑ์)"
+                    label="หมายเลขเครื่อง หรือ Serial Number"
                     name="deviceSerialNumber"
                     autoCorrect="off"
                     autoCapitalize="none"
@@ -915,12 +915,12 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   </p>
                 )}
 
-                {/* แยก 2 ส่วนชัดเจน: บริการอื่น ๆ (ระบุเอง) กับ รายละเอียดเพิ่มเติมของงานที่เลือก และประเมินค่าใช้จ่าย */}
+                {/* บริการอื่น ๆ, ประเมินค่าใช้จ่าย, และรายละเอียดเพิ่มเติม */}
                 <div className="space-y-3 pt-2">
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
                     <div className="sm:col-span-8">
                       <InputField
-                        label="บริการอื่น ๆ (กรณีไม่มีในรายการข้างต้น)"
+                        label="บริการอื่น ๆ"
                         name="otherServiceText"
                         optionalText="ถ้ามี"
                         value={otherServiceText}
@@ -930,20 +930,20 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                             setErrors({ ...errors, selectedServices: '' });
                           }
                         }}
-                        placeholder="เช่น ซ่อมพาวเวอร์ซัพพลาย, กู้ข้อมูลฮาร์ดดิสก์, เดินสายแลน..."
-                        helperText="ระบุเฉพาะเมื่อต้องการบริการนอกเหนือจาก 10 รายการด้านบน"
+                        placeholder="ระบุบริการ เช่น กู้ข้อมูล, ซ่อมจอ, เดินสายแลน"
+                        helperText="กรอกเฉพาะเมื่อต้องการบริการนอกเหนือจากรายการด้านบน"
                       />
                     </div>
                     <div className="sm:col-span-4">
                       <InputField
-                        label="ประเมินค่าใช้จ่าย (บาท)"
+                        label="ประเมินค่าใช้จ่าย"
                         name="estimatedCost"
                         type="text"
                         inputMode="numeric"
                         value={estimatedCost}
                         onChange={(e) => setEstimatedCost(e.target.value)}
-                        placeholder="คำนวณอัตโนมัติ (บาท)"
-                        helperText="คำนวณตามรายการ หรือแก้ไขเองได้"
+                        placeholder="คำนวณอัตโนมัติ"
+                        helperText="หน่วยเป็นบาท ระบบรวมให้หรือแก้ไขได้"
                         className="font-mono font-bold text-blue-700 dark:text-blue-400 tabular-nums-thai"
                       />
                     </div>
@@ -951,13 +951,13 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
 
                   <div>
                     <InputField
-                      label="รายละเอียดเพิ่มเติมเกี่ยวกับงานที่เลือก (หมายเหตุ/สเปกที่ต้องการ)"
+                      label="รายละเอียดเพิ่มเติม"
                       name="additionalDetailsText"
                       optionalText="ถ้ามี"
                       value={additionalDetailsText}
                       onChange={(e) => setAdditionalDetailsText(e.target.value)}
-                      placeholder="เช่น ระบุเวอร์ชัน Windows ที่ต้องการ, ขอโปรแกรมเสริม, สำรองข้อมูลไดรฟ์ D ไว้แล้ว..."
-                      helperText="บันทึกรายละเอียดเสริมสำหรับช่างผู้ซ่อม (จะไม่นับเป็นบริการอื่น)"
+                      placeholder="เช่น ต้องการ Windows 11, ขอโปรแกรมเฉพาะทาง, สำรองข้อมูลไว้แล้ว"
+                      helperText="ข้อมูลเสริมสำหรับช่างผู้ดูแลเครื่อง"
                     />
                   </div>
                 </div>
