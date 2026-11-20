@@ -239,10 +239,13 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
     if (!fullName.trim()) {
       nextErrors.fullName = 'กรุณากรอกชื่อ–นามสกุล เพื่อให้ช่างติดต่อแจ้งผลการซ่อมได้ถูกต้อง';
     }
-    if (!phoneNumber.trim()) {
-      nextErrors.phoneNumber = 'กรุณากรอกเบอร์โทรศัพท์ที่ติดต่อได้ เช่น 081-234-5678';
-    } else if (!/^[0-9+\-() ]{6,20}$/.test(phoneNumber.trim())) {
-      nextErrors.phoneNumber = 'เบอร์โทรศัพท์ไม่ถูกต้อง กรุณากรอกเฉพาะตัวเลข 9–10 หลัก เช่น 081-234-5678';
+    const phoneDigits = phoneNumber.replace(/\D/g, '');
+    if (!phoneDigits) {
+      nextErrors.phoneNumber = 'กรุณากรอกเบอร์โทรศัพท์ติดต่อ 10 หลัก (เช่น 0812345678)';
+    } else if (phoneDigits.length !== 10) {
+      nextErrors.phoneNumber = `กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก (ปัจจุบันกรอก ${phoneDigits.length}/10 หลัก)`;
+    } else if (!phoneDigits.startsWith('0')) {
+      nextErrors.phoneNumber = 'เบอร์โทรศัพท์ต้องขึ้นต้นด้วยเลข 0 (เช่น 0812345678)';
     }
     if (!receiverName.trim()) {
       nextErrors.receiverName = 'กรุณาเลือกช่าง IT Support ผู้รับเรื่อง (จากทั้ง 7 คน)';
@@ -599,16 +602,20 @@ export const ServiceRequestForm: React.FC<ServiceRequestFormProps> = ({
                   label="เบอร์โทรศัพท์ติดต่อ"
                   name="phoneNumber"
                   type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={10}
                   autoComplete="tel"
                   requiredMark
                   value={phoneNumber}
                   onChange={(e) => {
-                    setPhoneNumber(e.target.value);
-                    if (errors.phoneNumber) setErrors({ ...errors, phoneNumber: '' });
+                    const onlyNums = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setPhoneNumber(onlyNums);
+                    if (errors.phoneNumber) setErrors((prev) => ({ ...prev, phoneNumber: '' }));
                   }}
-                  placeholder="เช่น 081-234-5678"
+                  placeholder="เช่น 0812345678 (10 หลัก)"
                   error={errors.phoneNumber}
-                  className="font-mono tabular-nums-thai"
+                  className="font-mono tabular-nums-thai tracking-wider"
                 />
 
                 <InputField
