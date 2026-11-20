@@ -993,8 +993,10 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
 
                       {/* แสดงลายมือชื่อดิจิทัลของสมาชิกแต่ละคน หรือสถานะลา/ขาด */}
                       {sigs.map((item, sIdx) => {
-                        const isLeave = item.sig === 'ลา' || item.sig === '[ลา]';
-                        const isAbsent = item.sig === 'ขาด' || item.sig === '[ขาด]';
+                        const isLeave = item.sig === 'ลา' || item.sig === '[ลา]' || (typeof item.sig === 'string' && item.sig.trim().startsWith('ลา'));
+                        const isAbsent = item.sig === 'ขาด' || item.sig === '[ขาด]' || (typeof item.sig === 'string' && (item.sig.trim().startsWith('ขาด') || item.sig.trim().startsWith('ไม่มา')));
+                        const isImg = typeof item.sig === 'string' && (item.sig.startsWith('data:image/') || item.sig.startsWith('http://') || item.sig.startsWith('https://'));
+
                         return (
                           <td
                             key={sIdx}
@@ -1018,12 +1020,15 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                                   {item.name}
                                 </span>
                               </div>
-                            ) : item.sig ? (
+                            ) : isImg ? (
                               <div className="flex flex-col items-center justify-center">
                                 <img
                                   src={item.sig}
                                   alt={`ลายมือชื่อ ${item.name || `สมาชิกคนที่ ${sIdx + 1}`}`}
                                   className="h-10 max-w-[110px] object-contain bg-white rounded px-1"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLElement).style.display = 'none';
+                                  }}
                                 />
                                 <span className="text-xs text-slate-600 dark:text-slate-400 print:text-black mt-0.5">
                                   {item.name}
@@ -1200,12 +1205,23 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                           {name}
                         </div>
                       </div>
-                      {sig ? (
+                      {sig === 'ลา' || sig === '[ลา]' || (typeof sig === 'string' && sig.trim().startsWith('ลา')) ? (
+                        <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800 self-start sm:self-auto shrink-0">
+                          สถานะ: ลาปฏิบัติงาน
+                        </span>
+                      ) : sig === 'ขาด' || sig === '[ขาด]' || (typeof sig === 'string' && (sig.trim().startsWith('ขาด') || sig.trim().startsWith('ไม่มา'))) ? (
+                        <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-800 self-start sm:self-auto shrink-0">
+                          สถานะ: ไม่มา / ขาดปฏิบัติงาน
+                        </span>
+                      ) : typeof sig === 'string' && (sig.startsWith('data:image/') || sig.startsWith('http://') || sig.startsWith('https://')) ? (
                         <div className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm self-start sm:self-auto shrink-0">
                           <img
                             src={sig}
                             alt={`ลายมือชื่อ ${name}`}
                             className="h-12 max-w-[140px] object-contain"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
                           />
                         </div>
                       ) : (

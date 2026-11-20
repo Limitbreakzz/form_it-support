@@ -969,7 +969,11 @@ const WorkTimePaperDocument: React.FC<{
                         <div className="flex items-center justify-center gap-1.5">
                           {rowSigs.map((sItem, sIdx) => {
                             if (!sItem.sig) return null;
-                            if (sItem.sig === 'ลา' || sItem.sig === '[ลา]') {
+                            const isLeave = sItem.sig === 'ลา' || sItem.sig === '[ลา]' || (typeof sItem.sig === 'string' && sItem.sig.trim().startsWith('ลา'));
+                            const isAbsent = sItem.sig === 'ขาด' || sItem.sig === '[ขาด]' || (typeof sItem.sig === 'string' && (sItem.sig.trim().startsWith('ขาด') || sItem.sig.trim().startsWith('ไม่มา')));
+                            const isImg = typeof sItem.sig === 'string' && (sItem.sig.startsWith('data:image/') || sItem.sig.startsWith('http://') || sItem.sig.startsWith('https://'));
+
+                            if (isLeave) {
                               return (
                                 <span
                                   key={sIdx}
@@ -980,7 +984,7 @@ const WorkTimePaperDocument: React.FC<{
                                 </span>
                               );
                             }
-                            if (sItem.sig === 'ขาด' || sItem.sig === '[ขาด]') {
+                            if (isAbsent) {
                               return (
                                 <span
                                   key={sIdx}
@@ -991,15 +995,21 @@ const WorkTimePaperDocument: React.FC<{
                                 </span>
                               );
                             }
-                            return (
-                              <img
-                                key={sIdx}
-                                src={sItem.sig}
-                                alt={`ลายมือชื่อ ${sItem.name}`}
-                                title={sItem.name}
-                                className="h-[22px] max-w-[68px] object-contain"
-                              />
-                            );
+                            if (isImg) {
+                              return (
+                                <img
+                                  key={sIdx}
+                                  src={sItem.sig}
+                                  alt={`ลายมือชื่อ ${sItem.name}`}
+                                  title={sItem.name}
+                                  className="h-[22px] max-w-[68px] object-contain"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              );
+                            }
+                            return null;
                           })}
                         </div>
                       ) : null}

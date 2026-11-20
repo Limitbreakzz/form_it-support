@@ -811,24 +811,31 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                           {Array.from({ length: memberCount }).map((_, mIdx) => {
                             const name = anyRec[`Member${mIdx + 1}Name`];
                             const sig = anyRec[`Member${mIdx + 1}Signature`];
+                            const isLeave = sig === 'ลา' || sig === '[ลา]' || (typeof sig === 'string' && sig.trim().startsWith('ลา'));
+                            const isAbsent = sig === 'ขาด' || sig === '[ขาด]' || (typeof sig === 'string' && (sig.trim().startsWith('ขาด') || sig.trim().startsWith('ไม่มา')));
+                            const isImage = Boolean(typeof sig === 'string' && (sig.startsWith('data:image/') || sig.startsWith('http://') || sig.startsWith('https://')));
+
                             return (
                               <div
                                 key={mIdx}
                                 className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 text-xs"
                               >
-                                {sig === 'ลา' || sig === '[ลา]' ? (
+                                {isLeave ? (
                                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                                     ลา
                                   </span>
-                                ) : sig === 'ขาด' || sig === '[ขาด]' ? (
+                                ) : isAbsent ? (
                                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
                                     ขาด
                                   </span>
-                                ) : sig ? (
+                                ) : isImage ? (
                                   <img
                                     src={sig}
                                     alt={name}
                                     className="h-5 w-10 object-contain bg-white rounded border border-slate-100"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLElement).style.display = 'none';
+                                    }}
                                   />
                                 ) : null}
                                 <span className="font-medium text-slate-800 dark:text-slate-200">{name}</span>
@@ -945,19 +952,34 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                               {Array.from({ length: memberCount }).map((_, mIdx) => {
                                 const name = anyRec[`Member${mIdx + 1}Name`];
                                 const sig = anyRec[`Member${mIdx + 1}Signature`];
+                                const isLeave = sig === 'ลา' || sig === '[ลา]' || (typeof sig === 'string' && sig.trim().startsWith('ลา'));
+                                const isAbsent = sig === 'ขาด' || sig === '[ขาด]' || (typeof sig === 'string' && (sig.trim().startsWith('ขาด') || sig.trim().startsWith('ไม่มา')));
+                                const isImage = Boolean(typeof sig === 'string' && (sig.startsWith('data:image/') || sig.startsWith('http://') || sig.startsWith('https://')));
+
                                 return (
                                   <div
                                     key={mIdx}
                                     className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700"
                                   >
-                                    {sig && (
+                                    {isLeave ? (
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                        ลา
+                                      </span>
+                                    ) : isAbsent ? (
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
+                                        ขาด
+                                      </span>
+                                    ) : isImage ? (
                                       <img
                                         src={sig}
                                         alt={name}
-                                        className="h-6 w-12 object-contain bg-white rounded"
+                                        className="h-6 w-12 object-contain bg-white rounded border border-slate-100 dark:border-slate-700"
+                                        onError={(e) => {
+                                          (e.currentTarget as HTMLElement).style.display = 'none';
+                                        }}
                                       />
-                                    )}
-                                    <span className="text-xs font-medium">{name}</span>
+                                    ) : null}
+                                    <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{name}</span>
                                   </div>
                                 );
                               })}
@@ -1229,20 +1251,23 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                         </div>
                       </div>
                       <div className="shrink-0 flex items-center gap-2">
-                        {sig === 'ลา' || sig === '[ลา]' ? (
+                        {sig === 'ลา' || sig === '[ลา]' || (typeof sig === 'string' && sig.trim().startsWith('ลา')) ? (
                           <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
                             สถานะ: ลาปฏิบัติงาน
                           </span>
-                        ) : sig === 'ขาด' || sig === '[ขาด]' ? (
+                        ) : sig === 'ขาด' || sig === '[ขาด]' || (typeof sig === 'string' && (sig.trim().startsWith('ขาด') || sig.trim().startsWith('ไม่มา'))) ? (
                           <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-800">
                             สถานะ: ไม่มา / ขาดปฏิบัติงาน
                           </span>
-                        ) : sig ? (
+                        ) : typeof sig === 'string' && (sig.startsWith('data:image/') || sig.startsWith('http://') || sig.startsWith('https://')) ? (
                           <div className="bg-white p-1 rounded-lg border border-slate-200 shadow-xs">
                             <img
                               src={sig}
                               alt={`ลายเซ็น ${name}`}
                               className="h-10 w-28 object-contain"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none';
+                              }}
                             />
                           </div>
                         ) : (
