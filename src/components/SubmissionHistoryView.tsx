@@ -816,13 +816,21 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                                 key={mIdx}
                                 className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 text-xs"
                               >
-                                {sig && (
+                                {sig === 'ลา' || sig === '[ลา]' ? (
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                    ลา
+                                  </span>
+                                ) : sig === 'ขาด' || sig === '[ขาด]' ? (
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
+                                    ขาด
+                                  </span>
+                                ) : sig ? (
                                   <img
                                     src={sig}
                                     alt={name}
                                     className="h-5 w-10 object-contain bg-white rounded border border-slate-100"
                                   />
-                                )}
+                                ) : null}
                                 <span className="font-medium text-slate-800 dark:text-slate-200">{name}</span>
                               </div>
                             );
@@ -1221,7 +1229,15 @@ export const SubmissionHistoryView: React.FC<SubmissionHistoryViewProps> = ({
                         </div>
                       </div>
                       <div className="shrink-0 flex items-center gap-2">
-                        {sig ? (
+                        {sig === 'ลา' || sig === '[ลา]' ? (
+                          <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                            สถานะ: ลาปฏิบัติงาน
+                          </span>
+                        ) : sig === 'ขาด' || sig === '[ขาด]' ? (
+                          <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-800">
+                            สถานะ: ไม่มา / ขาดปฏิบัติงาน
+                          </span>
+                        ) : sig ? (
                           <div className="bg-white p-1 rounded-lg border border-slate-200 shadow-xs">
                             <img
                               src={sig}

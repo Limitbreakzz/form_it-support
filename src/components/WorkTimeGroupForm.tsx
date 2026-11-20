@@ -31,7 +31,7 @@ import {
   getCurrentDateISO,
   getCurrentTime24,
 } from '../utils/formatters';
-import { SignaturePadField } from './SignaturePadField';
+import { SignaturePadField, MemberAttendanceStatus } from './SignaturePadField';
 import { ConfirmDialog } from './ConfirmDialog';
 import { PrintDocumentPortal, PaperPreviewPayload } from './PaperDocumentPreviewModal';
 import { Badge, Button, Card, DateField, Drawer, IconButton, InputField, TimeField24, toast } from './ui/DesignSystem';
@@ -93,9 +93,21 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
   const [workEndTime, setWorkEndTime] = useState<string>('16:00');
   const [remarks, setRemarks] = useState<string>('');
 
+  const parseSigAndStatus = (
+    sigVal?: string
+  ): { sig: string; status: MemberAttendanceStatus } => {
+    const val = (sigVal || '').trim();
+    if (val === 'ลา' || val === '[ลา]') return { sig: '', status: 'leave' };
+    if (val === 'ขาด' || val === '[ขาด]') return { sig: '', status: 'absent' };
+    return { sig: val, status: 'present' };
+  };
+
   const [memberNames, setMemberNames] = useState<string[]>(getInitialNames);
   const [memberSignatures, setMemberSignatures] = useState<string[]>(() =>
     Array(memberCount).fill('')
+  );
+  const [memberStatuses, setMemberStatuses] = useState<MemberAttendanceStatus[]>(() =>
+    Array(memberCount).fill('present')
   );
 
   const [editingRecord, setEditingRecord] = useState<AnyWorkTimeRecord | null>(null);
@@ -140,7 +152,10 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
           r1.Member1Name || groupConfig.defaultMembers[0],
           r1.Member2Name || groupConfig.defaultMembers[1],
         ]);
-        setMemberSignatures([r1.Member1Signature || '', r1.Member2Signature || '']);
+        const p1 = parseSigAndStatus(r1.Member1Signature);
+        const p2 = parseSigAndStatus(r1.Member2Signature);
+        setMemberSignatures([p1.sig, p2.sig]);
+        setMemberStatuses([p1.status, p2.status]);
       } else {
         const r3 = initialEditingRecord as WorkTimeGroup2Or3Record;
         setMemberNames([
@@ -148,11 +163,11 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
           r3.Member2Name || groupConfig.defaultMembers[1],
           r3.Member3Name || groupConfig.defaultMembers[2] || '',
         ]);
-        setMemberSignatures([
-          r3.Member1Signature || '',
-          r3.Member2Signature || '',
-          r3.Member3Signature || '',
-        ]);
+        const p1 = parseSigAndStatus(r3.Member1Signature);
+        const p2 = parseSigAndStatus(r3.Member2Signature);
+        const p3 = parseSigAndStatus(r3.Member3Signature);
+        setMemberSignatures([p1.sig, p2.sig, p3.sig]);
+        setMemberStatuses([p1.status, p2.status, p3.status]);
       }
       setErrors({});
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -166,6 +181,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       setRemarks('');
       setMemberNames(getInitialNames());
       setMemberSignatures(Array(memberCount).fill(''));
+      setMemberStatuses(Array(memberCount).fill('present'));
       setErrors({});
       setFeedback(null);
     }
@@ -192,6 +208,18 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
     }
   };
 
+  const handleAttendanceStatusChange = (idx: number, status: MemberAttendanceStatus) => {
+    const next = [...memberStatuses];
+    next[idx] = status;
+    setMemberStatuses(next);
+    if (status !== 'present') {
+      // Clear signature error immediately when marked leave or absent
+      if (errors[`sig_${idx}`]) {
+        setErrors((prev) => ({ ...prev, [`sig_${idx}`]: '' }));
+      }
+    }
+  };
+
   const startEditingRow = (rec: AnyWorkTimeRecord) => {
     const doEdit = () => {
       setEditingRecord(rec);
@@ -206,7 +234,10 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
           r1.Member1Name || 'สมาชิกคนที่ 1',
           r1.Member2Name || 'สมาชิกคนที่ 2',
         ]);
-        setMemberSignatures([r1.Member1Signature || '', r1.Member2Signature || '']);
+        const p1 = parseSigAndStatus(r1.Member1Signature);
+        const p2 = parseSigAndStatus(r1.Member2Signature);
+        setMemberSignatures([p1.sig, p2.sig]);
+        setMemberStatuses([p1.status, p2.status]);
       } else {
         const r3 = rec as WorkTimeGroup2Or3Record;
         setMemberNames([
@@ -214,11 +245,11 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
           r3.Member2Name || 'สมาชิกคนที่ 2',
           r3.Member3Name || 'สมาชิกคนที่ 3',
         ]);
-        setMemberSignatures([
-          r3.Member1Signature || '',
-          r3.Member2Signature || '',
-          r3.Member3Signature || '',
-        ]);
+        const p1 = parseSigAndStatus(r3.Member1Signature);
+        const p2 = parseSigAndStatus(r3.Member2Signature);
+        const p3 = parseSigAndStatus(r3.Member3Signature);
+        setMemberSignatures([p1.sig, p2.sig, p3.sig]);
+        setMemberStatuses([p1.status, p2.status, p3.status]);
       }
       setErrors({});
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -258,8 +289,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
     for (let i = 0; i < memberCount; i++) {
       if (!memberNames[i]?.trim()) {
         nextErrors[`sig_${i}`] = `กรุณากรอกชื่อ–นามสกุลของช่างคนที่ ${i + 1}`;
-      } else if (!memberSignatures[i]) {
-        nextErrors[`sig_${i}`] = `กรุณาวาดลายเซ็นหรืออัปโหลดรูปลายเซ็นของ ${memberNames[i]}`;
+      } else if (memberStatuses[i] === 'present' && !memberSignatures[i]) {
+        nextErrors[`sig_${i}`] = `กรุณาวาดลายเซ็นหรืออัปโหลดรูปลายเซ็นของ ${memberNames[i]} (หรือเลือกสถานะ "ลา" / "ขาด" หากไม่ได้มาปฏิบัติงาน)`;
       }
     }
 
@@ -273,6 +304,12 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
       ? editingRecord.SequenceNo
       : String(records.length + 1);
 
+    const getFinalSig = (idx: number) => {
+      if (memberStatuses[idx] === 'leave') return 'ลา';
+      if (memberStatuses[idx] === 'absent') return 'ขาด';
+      return memberSignatures[idx] || '';
+    };
+
     if (memberCount === 2) {
       const group1Record: WorkTimeGroup1Record = {
         RecordID: editingRecord ? editingRecord.RecordID : generateRecordId(),
@@ -281,9 +318,9 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         WorkStartTime: workStartTime.trim(),
         WorkEndTime: workEndTime.trim(),
         Member1Name: memberNames[0].trim(),
-        Member1Signature: memberSignatures[0],
+        Member1Signature: getFinalSig(0),
         Member2Name: memberNames[1].trim(),
-        Member2Signature: memberSignatures[1],
+        Member2Signature: getFinalSig(1),
         Remarks: remarks.trim() || '-',
         CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
         UpdatedAt: nowIso,
@@ -297,11 +334,11 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
         WorkStartTime: workStartTime.trim(),
         WorkEndTime: workEndTime.trim(),
         Member1Name: memberNames[0].trim(),
-        Member1Signature: memberSignatures[0],
+        Member1Signature: getFinalSig(0),
         Member2Name: memberNames[1].trim(),
-        Member2Signature: memberSignatures[1],
+        Member2Signature: getFinalSig(1),
         Member3Name: memberNames[2].trim(),
-        Member3Signature: memberSignatures[2],
+        Member3Signature: getFinalSig(2),
         Remarks: remarks.trim() || '-',
         CreatedAt: editingRecord ? editingRecord.CreatedAt : nowIso,
         UpdatedAt: nowIso,
@@ -639,13 +676,13 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
             <fieldset className="space-y-3 border-0 p-0 m-0">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <legend className="block text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                  5. ลงลายมือชื่อผู้ปฏิบัติงาน ({dayTechnicianLabel} ครบทั้ง {memberCount} คน){' '}
+                  5. บันทึกการปฏิบัติงานและลงลายมือชื่อ ({dayTechnicianLabel} {memberCount} คน){' '}
                   <span className="text-red-500" aria-hidden="true">
                     *
                   </span>
                 </legend>
                 <span className="text-xs text-slate-500 dark:text-slate-400">
-                  ใช้นิ้ว เมาส์ หรือปากกาวาดลายเซ็นบนหน้าจอ หรืออัปโหลดรูปลายเซ็นได้
+                  เลือกสถานะ [มา / ลา / ขาด] หากขาดหรือลาไม่ต้องเซ็น ระบบจะบันทึกสถานะให้อัตโนมัติ
                 </span>
               </div>
 
@@ -662,6 +699,8 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                     onMemberNameChange={(val) => handleMemberNameChange(idx, val)}
                     value={memberSignatures[idx] || ''}
                     onChange={(dataUrl) => handleMemberSignatureChange(idx, dataUrl)}
+                    attendanceStatus={memberStatuses[idx] || 'present'}
+                    onAttendanceStatusChange={(status) => handleAttendanceStatusChange(idx, status)}
                     error={errors[`sig_${idx}`]}
                   />
                 ))}
@@ -696,6 +735,7 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                       setEditingRecord(null);
                       setRemarks('');
                       setMemberSignatures(Array(memberCount).fill(''));
+                      setMemberStatuses(Array(memberCount).fill('present'));
                       if (onCancelEdit) onCancelEdit();
                     }}
                     className="w-full sm:w-auto"
@@ -958,28 +998,50 @@ export const WorkTimeGroupForm: React.FC<WorkTimeGroupFormProps> = ({
                         {formatDisplayTime(rec.WorkEndTime)}
                       </td>
 
-                      {/* แสดงลายมือชื่อดิจิทัลของสมาชิกแต่ละคน */}
-                      {sigs.map((item, sIdx) => (
-                        <td
-                          key={sIdx}
-                          className="border border-slate-300 dark:border-slate-700 px-2 py-1.5 text-center align-middle"
-                        >
-                          {item.sig ? (
-                            <div className="flex flex-col items-center justify-center">
-                              <img
-                                src={item.sig}
-                                alt={`ลายมือชื่อ ${item.name || `สมาชิกคนที่ ${sIdx + 1}`}`}
-                                className="h-10 max-w-[110px] object-contain bg-white rounded px-1"
-                              />
-                              <span className="text-xs text-slate-600 dark:text-slate-400 print:text-black mt-0.5">
-                                {item.name}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400 italic">—</span>
-                          )}
-                        </td>
-                      ))}
+                      {/* แสดงลายมือชื่อดิจิทัลของสมาชิกแต่ละคน หรือสถานะลา/ขาด */}
+                      {sigs.map((item, sIdx) => {
+                        const isLeave = item.sig === 'ลา' || item.sig === '[ลา]';
+                        const isAbsent = item.sig === 'ขาด' || item.sig === '[ขาด]';
+                        return (
+                          <td
+                            key={sIdx}
+                            className="border border-slate-300 dark:border-slate-700 px-2 py-1.5 text-center align-middle"
+                          >
+                            {isLeave ? (
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-700 print:border-black print:text-black">
+                                  ลา
+                                </span>
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 print:text-black mt-0.5">
+                                  {item.name}
+                                </span>
+                              </div>
+                            ) : isAbsent ? (
+                              <div className="flex flex-col items-center justify-center">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-300 border border-red-300 dark:border-red-700 print:border-black print:text-black">
+                                  ขาด
+                                </span>
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 print:text-black mt-0.5">
+                                  {item.name}
+                                </span>
+                              </div>
+                            ) : item.sig ? (
+                              <div className="flex flex-col items-center justify-center">
+                                <img
+                                  src={item.sig}
+                                  alt={`ลายมือชื่อ ${item.name || `สมาชิกคนที่ ${sIdx + 1}`}`}
+                                  className="h-10 max-w-[110px] object-contain bg-white rounded px-1"
+                                />
+                                <span className="text-xs text-slate-600 dark:text-slate-400 print:text-black mt-0.5">
+                                  {item.name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">—</span>
+                            )}
+                          </td>
+                        );
+                      })}
 
                       <td className="border border-slate-300 dark:border-slate-700 px-3 py-2">
                         {rec.Remarks || '—'}

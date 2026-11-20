@@ -953,8 +953,31 @@ const WorkTimePaperDocument: React.FC<{
                     <td className="border border-black px-1 py-0.5 text-center align-middle overflow-hidden">
                       {rec ? (
                         <div className="flex items-center justify-center gap-1.5">
-                          {rowSigs.map((sItem, sIdx) =>
-                            sItem.sig ? (
+                          {rowSigs.map((sItem, sIdx) => {
+                            if (!sItem.sig) return null;
+                            if (sItem.sig === 'ลา' || sItem.sig === '[ลา]') {
+                              return (
+                                <span
+                                  key={sIdx}
+                                  title={`${sItem.name} (ลา)`}
+                                  className="text-[9px] font-bold text-black border border-black rounded px-1 py-0.5 leading-none"
+                                >
+                                  ลา
+                                </span>
+                              );
+                            }
+                            if (sItem.sig === 'ขาด' || sItem.sig === '[ขาด]') {
+                              return (
+                                <span
+                                  key={sIdx}
+                                  title={`${sItem.name} (ขาด)`}
+                                  className="text-[9px] font-bold text-black border border-black rounded px-1 py-0.5 leading-none"
+                                >
+                                  ขาด
+                                </span>
+                              );
+                            }
+                            return (
                               <img
                                 key={sIdx}
                                 src={sItem.sig}
@@ -962,8 +985,8 @@ const WorkTimePaperDocument: React.FC<{
                                 title={sItem.name}
                                 className="h-[22px] max-w-[68px] object-contain"
                               />
-                            ) : null
-                          )}
+                            );
+                          })}
                         </div>
                       ) : null}
                     </td>

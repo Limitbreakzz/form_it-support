@@ -1,5 +1,16 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Eraser, PenTool, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Eraser,
+  PenTool,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  UserCheck,
+  CalendarOff,
+  UserX,
+} from 'lucide-react';
+
+export type MemberAttendanceStatus = 'present' | 'leave' | 'absent';
 
 interface SignaturePadFieldProps {
   label: string;
@@ -8,6 +19,8 @@ interface SignaturePadFieldProps {
   value: string; // Base64 PNG Data URL
   onChange: (dataUrl: string) => void;
   error?: string;
+  attendanceStatus?: MemberAttendanceStatus;
+  onAttendanceStatusChange?: (status: MemberAttendanceStatus) => void;
 }
 
 export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
@@ -17,6 +30,8 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
   value,
   onChange,
   error,
+  attendanceStatus = 'present',
+  onAttendanceStatusChange,
 }) => {
   const [mode, setMode] = useState<'draw' | 'upload'>('draw');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -159,6 +174,10 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
       className={`rounded-2xl border p-4 transition-colors ${
         error
           ? 'border-red-400 bg-red-50/40 dark:border-red-500/70 dark:bg-red-950/20'
+          : attendanceStatus === 'leave'
+          ? 'border-amber-300 bg-amber-50/30 dark:border-amber-700/60 dark:bg-amber-950/20'
+          : attendanceStatus === 'absent'
+          ? 'border-red-300 bg-red-50/30 dark:border-red-700/60 dark:bg-red-950/20'
           : 'border-slate-200 bg-slate-50/60 dark:border-slate-800 dark:bg-slate-900/60'
       }`}
     >
@@ -167,47 +186,114 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
           <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
             {label}
           </span>
-          {value && (
+          {attendanceStatus === 'present' && value && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
               <span>ลงชื่อแล้ว</span>
             </span>
           )}
+          {attendanceStatus === 'leave' && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-800">
+              <CalendarOff className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>ลา</span>
+            </span>
+          )}
+          {attendanceStatus === 'absent' && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 dark:text-red-400 px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-950/80 border border-red-300 dark:border-red-800">
+              <UserX className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>ขาด</span>
+            </span>
+          )}
         </div>
 
+        {/* ปุ่มเลือกสถานะ มาปฏิบัติงาน / ลา / ขาด */}
         <div
-          className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs"
+          className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs shadow-xs"
           role="group"
-          aria-label="เลือกรูปแบบการลงลายมือชื่อ"
+          aria-label="เลือกสถานะการมาปฏิบัติงาน"
         >
           <button
             type="button"
-            aria-pressed={mode === 'draw'}
-            onClick={() => setMode('draw')}
-            className={`min-h-[34px] inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-              mode === 'draw'
-                ? 'bg-blue-600 text-white shadow-sm'
+            title="มาปฏิบัติงานตามปกติ (ต้องเซ็นชื่อ)"
+            aria-pressed={attendanceStatus === 'present'}
+            onClick={() => onAttendanceStatusChange?.('present')}
+            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
+              attendanceStatus === 'present'
+                ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
-            <PenTool className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-            <span>วาดลายเซ็น</span>
+            <UserCheck className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span>มา</span>
           </button>
           <button
             type="button"
-            aria-pressed={mode === 'upload'}
-            onClick={() => setMode('upload')}
-            className={`min-h-[34px] inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
-              mode === 'upload'
-                ? 'bg-blue-600 text-white shadow-sm'
+            title="ลาปฏิบัติงาน (ไม่ต้องเซ็นชื่อ)"
+            aria-pressed={attendanceStatus === 'leave'}
+            onClick={() => onAttendanceStatusChange?.('leave')}
+            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 ${
+              attendanceStatus === 'leave'
+                ? 'bg-amber-600 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
             }`}
           >
-            <Upload className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-            <span>อัปโหลดรูปภาพ</span>
+            <CalendarOff className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span>ลา</span>
+          </button>
+          <button
+            type="button"
+            title="ขาด / ไม่มาปฏิบัติงาน (ไม่ต้องเซ็นชื่อ)"
+            aria-pressed={attendanceStatus === 'absent'}
+            onClick={() => onAttendanceStatusChange?.('absent')}
+            className={`min-h-[32px] inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 ${
+              attendanceStatus === 'absent'
+                ? 'bg-red-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+            }`}
+          >
+            <UserX className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span>ขาด</span>
           </button>
         </div>
       </div>
+
+      {/* สลับโหมดวาดหรืออัปโหลด (แสดงเฉพาะเมื่อสถานะเป็น "มา") */}
+      {attendanceStatus === 'present' && (
+        <div className="flex justify-end mb-3">
+          <div
+            className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs shadow-xs"
+            role="group"
+            aria-label="เลือกรูปแบบการลงลายมือชื่อ"
+          >
+            <button
+              type="button"
+              aria-pressed={mode === 'draw'}
+              onClick={() => setMode('draw')}
+              className={`min-h-[32px] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+                mode === 'draw'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <PenTool className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>วาดลายเซ็น</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={mode === 'upload'}
+              onClick={() => setMode('upload')}
+              className={`min-h-[32px] inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
+                mode === 'upload'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Upload className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <span>อัปโหลดรูปภาพ</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ชื่อ-นามสกุล สมาชิกในกลุ่ม */}
       <div className="mb-3">
@@ -233,8 +319,32 @@ export const SignaturePadField: React.FC<SignaturePadFieldProps> = ({
         />
       </div>
 
-      {/* พื้นที่ลงลายมือชื่อดิจิทัล */}
-      {mode === 'draw' ? (
+      {/* พื้นที่ลงลายมือชื่อดิจิทัล หรือแสดงการแจ้งเตือนกรณีขาด/ลา */}
+      {attendanceStatus === 'leave' ? (
+        <div className="rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700/60 bg-amber-50/60 dark:bg-amber-950/30 p-6 text-center">
+          <div className="inline-flex p-2.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 mb-2">
+            <CalendarOff className="w-5 h-5" aria-hidden="true" />
+          </div>
+          <div className="text-sm font-bold text-amber-900 dark:text-amber-200">
+            ระบุสถานะ: ลาปฏิบัติงาน
+          </div>
+          <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+            ไม่ต้องลงลายมือชื่อ ระบบจะบันทึกสถานะ "ลา" ในใบลงเวลาให้อัตโนมัติ
+          </p>
+        </div>
+      ) : attendanceStatus === 'absent' ? (
+        <div className="rounded-xl border-2 border-dashed border-red-300 dark:border-red-700/60 bg-red-50/60 dark:bg-red-950/30 p-6 text-center">
+          <div className="inline-flex p-2.5 rounded-full bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300 mb-2">
+            <UserX className="w-5 h-5" aria-hidden="true" />
+          </div>
+          <div className="text-sm font-bold text-red-900 dark:text-red-200">
+            ระบุสถานะ: ไม่มา / ขาดปฏิบัติงาน
+          </div>
+          <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+            ไม่ต้องลงลายมือชื่อ ระบบจะบันทึกสถานะ "ขาด" ในใบลงเวลาให้อัตโนมัติ
+          </p>
+        </div>
+      ) : mode === 'draw' ? (
         <div className="relative">
           <div className="relative rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white overflow-hidden">
             {!value && !isDrawing && (
