@@ -205,27 +205,6 @@ function setupNewSpreadsheet() {
       if (phoneIdx !== -1) {
         sheet.getRange(1, phoneIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
       }
-      var timeIdx = config.headers.indexOf('Time');
-      if (timeIdx !== -1) {
-        sheet.getRange(1, timeIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-      var dateIdx = config.headers.indexOf('Date');
-      if (dateIdx !== -1) {
-        sheet.getRange(1, dateIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-    } else {
-      var dateIdx = config.headers.indexOf('Date');
-      if (dateIdx !== -1) {
-        sheet.getRange(1, dateIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-      var startIdx = config.headers.indexOf('WorkStartTime');
-      if (startIdx !== -1) {
-        sheet.getRange(1, startIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-      var endIdx = config.headers.indexOf('WorkEndTime');
-      if (endIdx !== -1) {
-        sheet.getRange(1, endIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
     }
   }
 
@@ -246,8 +225,7 @@ function setupNewSpreadsheet() {
 /**
  * ฟังก์ชันช่วยตั้งค่าและปรับปรุงชีตอัตโนมัติ (สามารถเลือกกดปุ่ม "เรียกใช้" / Run ใน Apps Script ได้เลย)
  * - เปลี่ยนหัวตารางแถวที่ 1 ของทั้ง 4 แผ่นงานให้เป็น "ภาษาไทย" สวยงามและเข้าใจง่าย
- * - จัดรูปแบบคอลัมน์เบอร์โทรศัพท์ (F) และคอลัมน์เวลา (D) ทั้งคอลัมน์ให้เป็น Plain Text (@) เพื่อให้ค่าไม่เพี้ยน
- * - กู้คืนค่าเวลาที่กลายเป็น 1899-12-30 ให้กลับมาเป็นเวลาปกติ (เช่น 10:35)
+ * - จัดรูปแบบคอลัมน์เบอร์โทรศัพท์ (F) ทั้งคอลัมน์ให้เป็น Plain Text (@) เพื่อให้เลข 0 ไม่หาย
  * - เติมเลข 0 ให้เบอร์เก่าในชีตที่เลข 0 หายไป (เช่น 615929399 -> 0615929399)
  * - ใส่เครื่องหมาย '-' ให้กับเซลล์ที่ว่างทั้งหมด
  */
@@ -271,35 +249,6 @@ function setupAndFormatSheet() {
     headerRange.setFontColor('#ffffff');
     sheet.setFrozenRows(1);
 
-    // ล็อกรูปแบบ Plain Text (@) ให้คอลัมน์สำคัญ ป้องกัน Google Sheets แปลงเวลาเป็น 1899-12-30
-    if (key === 'REQUESTS') {
-      var phoneIdx = config.headers.indexOf('PhoneNumber');
-      if (phoneIdx !== -1) {
-        sheet.getRange(1, phoneIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-      var timeIdx = config.headers.indexOf('Time');
-      if (timeIdx !== -1) {
-        sheet.getRange(1, timeIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-      var dateIdx = config.headers.indexOf('Date');
-      if (dateIdx !== -1) {
-        sheet.getRange(1, dateIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-    } else {
-      var dateIdx = config.headers.indexOf('Date');
-      if (dateIdx !== -1) {
-        sheet.getRange(1, dateIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-      var startIdx = config.headers.indexOf('WorkStartTime');
-      if (startIdx !== -1) {
-        sheet.getRange(1, startIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-      var endIdx = config.headers.indexOf('WorkEndTime');
-      if (endIdx !== -1) {
-        sheet.getRange(1, endIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-      }
-    }
-
     var lastRow = sheet.getLastRow();
     var lastCol = sheet.getLastColumn();
     if (lastRow > 1 && lastCol > 0) {
@@ -307,34 +256,12 @@ function setupAndFormatSheet() {
       var values = range.getValues();
       for (var r = 0; r < values.length; r++) {
         for (var c = 0; c < values[r].length; c++) {
-          var headerName = config.headers[c];
-          var isTimeCol = (headerName === 'Time' || headerName === 'WorkStartTime' || headerName === 'WorkEndTime');
-          var isDateCol = (headerName === 'Date');
           var val = values[r][c];
-
           if (val instanceof Date) {
-            if (isTimeCol || val.getFullYear() === 1899) {
-              values[r][c] = Utilities.formatDate(val, Session.getScriptTimeZone() || 'Asia/Bangkok', 'HH:mm');
-            } else if (isDateCol) {
-              values[r][c] = Utilities.formatDate(val, Session.getScriptTimeZone() || 'Asia/Bangkok', 'yyyy-MM-dd');
-            }
             continue;
           }
-
           var str = (val !== undefined && val !== null) ? String(val).trim() : '';
-
-          if (isTimeCol) {
-            if (str.indexOf('1899-12-30T') !== -1) {
-              values[r][c] = str.substring(11, 16);
-            } else if (str === '1899-12-30') {
-              // กู้คืนค่าเวลา
-              values[r][c] = '10:35';
-            }
-          } else if (isDateCol) {
-            if (str.indexOf('T') !== -1) {
-              values[r][c] = str.split('T')[0];
-            }
-          } else if (key === 'REQUESTS' && c === 5) {
+          if (key === 'REQUESTS' && c === 5) {
             // คอลัมน์เบอร์โทรศัพท์ (PhoneNumber)
             if (str && /^[689]\d{8}$/.test(str)) {
               values[r][c] = '0' + str;
@@ -348,16 +275,22 @@ function setupAndFormatSheet() {
       }
       range.setValues(values);
     }
+
+    if (key === 'REQUESTS') {
+      var phoneIdx = config.headers.indexOf('PhoneNumber');
+      if (phoneIdx !== -1) {
+        sheet.getRange(1, phoneIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
+      }
+    }
   }
 
-  Logger.log('อัปเดตหัวข้อภาษาไทย กู้คืนเวลา และจัดรูปแบบตารางทั้ง 4 ชีตเรียบร้อยแล้ว!');
+  Logger.log('อัปเดตหัวข้อภาษาไทยและจัดรูปแบบตารางทั้ง 4 ชีตเรียบร้อยแล้ว!');
 }
 
 /**
  * Formats a value for writing into Google Sheets:
  * - Empty / blank / null / undefined values become '-'
  * - PhoneNumber is stored as plain text with leading zeros intact
- * - Time / WorkStartTime / WorkEndTime stored as plain text HH:mm
  */
 function formatCellForSheet(header, rawVal) {
   var str = (rawVal !== undefined && rawVal !== null) ? String(rawVal).trim() : '';
@@ -371,23 +304,6 @@ function formatCellForSheet(header, rawVal) {
       cleanPhone = '0' + cleanPhone;
     }
     return cleanPhone.startsWith("'") ? cleanPhone : "'" + cleanPhone;
-  }
-  if (header === 'Time' || header === 'WorkStartTime' || header === 'WorkEndTime') {
-    if (str === '-') return '-';
-    if (str.indexOf('1899-12-30T') !== -1) {
-      str = str.substring(11, 16);
-    } else if (/T(\d{2}:\d{2})/.test(str)) {
-      var m = str.match(/T(\d{2}:\d{2})/);
-      if (m) str = m[1];
-    }
-    return str.startsWith("'") ? str : "'" + str;
-  }
-  if (header === 'Date') {
-    if (str === '-') return '-';
-    if (str.indexOf('T') !== -1) {
-      str = str.split('T')[0];
-    }
-    return str.startsWith("'") ? str : "'" + str;
   }
   return str;
 }
@@ -437,32 +353,11 @@ function ensureSheet(sheetKey) {
     }
   }
 
-  // Format Plain Text '@' on critical columns in Google Sheets
+  // Format PhoneNumber column as plain text '@' in Google Sheets
   if (sheetKey === 'REQUESTS') {
     var phoneIdx = config.headers.indexOf('PhoneNumber');
     if (phoneIdx !== -1) {
-      sheet.getRange(1, phoneIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-    }
-    var timeIdx = config.headers.indexOf('Time');
-    if (timeIdx !== -1) {
-      sheet.getRange(1, timeIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-    }
-    var dateIdx = config.headers.indexOf('Date');
-    if (dateIdx !== -1) {
-      sheet.getRange(1, dateIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-    }
-  } else {
-    var dateIdx = config.headers.indexOf('Date');
-    if (dateIdx !== -1) {
-      sheet.getRange(1, dateIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-    }
-    var startIdx = config.headers.indexOf('WorkStartTime');
-    if (startIdx !== -1) {
-      sheet.getRange(1, startIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
-    }
-    var endIdx = config.headers.indexOf('WorkEndTime');
-    if (endIdx !== -1) {
-      sheet.getRange(1, endIdx + 1, sheet.getMaxRows(), 1).setNumberFormat('@');
+      sheet.getRange(2, phoneIdx + 1, Math.max(1, sheet.getMaxRows() - 1), 1).setNumberFormat('@');
     }
   }
 
@@ -498,35 +393,18 @@ function readSheetRecords(sheetKey) {
     var hasContent = false;
     for (var c = 0; c < headers.length; c++) {
       var val = row[c];
-      var headerName = headers[c];
-      var isTimeCol = (headerName === 'Time' || headerName === 'WorkStartTime' || headerName === 'WorkEndTime');
-
       if (val instanceof Date) {
-        if (isTimeCol || val.getFullYear() === 1899) {
-          val = Utilities.formatDate(val, Session.getScriptTimeZone() || 'Asia/Bangkok', "HH:mm");
-        } else {
-          val = Utilities.formatDate(val, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
-        }
+        val = Utilities.formatDate(val, Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
       }
       var strVal = (val !== undefined && val !== null) ? String(val).trim() : '';
-
-      if (isTimeCol) {
-        if (strVal.indexOf('1899-12-30T') !== -1) {
-          strVal = strVal.substring(11, 16);
-        } else if (/^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})/.test(strVal)) {
-          var match = strVal.match(/T(\d{2}:\d{2})/);
-          if (match) strVal = match[1];
-        }
-      }
-
-      if (headerName === 'PhoneNumber') {
+      if (headers[c] === 'PhoneNumber') {
         if (strVal.startsWith("'")) {
           strVal = strVal.substring(1);
         } else if (/^[689]\d{8}$/.test(strVal)) {
           strVal = '0' + strVal;
         }
       }
-      obj[headerName] = strVal;
+      obj[headers[c]] = strVal;
       if (strVal !== '' && strVal !== '-') {
         hasContent = true;
       }
