@@ -724,17 +724,37 @@ interface WheelColumnProps {
 
 const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelect, ariaLabel }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const isUserInteractingRef = useRef(false);
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isReadyRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const programmaticTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ตั้งตำแหน่ง Scroll เริ่มต้นให้ตรงกับค่าที่เลือกทันที (ป้องกัน Bug การเลื่อนแฉลบไป 01:01 ตอนโหลด)
+  // ตั้งตำแหน่ง Scroll เริ่มต้นให้ตรงกับค่าที่เลือกทันทีเมื่อคอมโพเนนต์ Mount
+  // ล็อกไม่ให้ trigger event ในช่วง 80ms แรก เพื่อป้องกัน Bug แฉลบไป 01:01
   useEffect(() => {
-    if (!containerRef.current) return;
-    containerRef.current.scrollLeft = 0;
+    if (containerRef.current) {
+      containerRef.current.scrollTop = selectedIndex * ITEM_HEIGHT;
+      containerRef.current.scrollLeft = 0;
+    }
+    const timer = setTimeout(() => {
+      isReadyRef.current = true;
+    }, 80);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // เมื่อค่า selectedIndex เปลี่ยนจากภายนอก (เช่น กดปุ่มลัดเวลา "12:00" หรือ "ตอนนี้") ให้เลื่อนไปยังตำแหน่งนั้น
+  useEffect(() => {
+    if (!containerRef.current || !isReadyRef.current) return;
     const targetTop = selectedIndex * ITEM_HEIGHT;
-    // ปรับตำแหน่งเฉพาะเมื่อผู้ใช้ไม่ได้กำลังสัมผัส/เลื่อนลูกกลิ้งอยู่
-    if (!isUserInteractingRef.current && Math.abs(containerRef.current.scrollTop - targetTop) > 2) {
-      containerRef.current.scrollTop = targetTop;
+    if (Math.abs(containerRef.current.scrollTop - targetTop) > ITEM_HEIGHT / 2) {
+      isProgrammaticScrollRef.current = true;
+      containerRef.current.scrollTo({
+        top: targetTop,
+        behavior: 'smooth',
+      });
+      if (programmaticTimerRef.current) clearTimeout(programmaticTimerRef.current);
+      programmaticTimerRef.current = setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 350);
     }
   }, [selectedIndex]);
 
@@ -744,8 +764,8 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelec
       e.currentTarget.scrollLeft = 0;
     }
 
-    // ดักฟังเฉพาะเมื่อเกิดจากการกระทำของผู้ใช้จริง (แตะ/ปัด/หมุนล้อเมาส์) เท่านั้น
-    if (!isUserInteractingRef.current) return;
+    // หากระบบกำลังเลื่อนอัตโนมัติจากปุ่มลัด หรือยังไม่พร้อมหลังเปิด Modal ให้ข้าม
+    if (isProgrammaticScrollRef.current || !isReadyRef.current) return;
 
     const top = e.currentTarget.scrollTop;
     const nextIdx = Math.round(top / ITEM_HEIGHT);
@@ -753,22 +773,9 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelec
     if (clamped !== selectedIndex) {
       onSelect(clamped);
     }
-
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => {
-      isUserInteractingRef.current = false;
-    }, 150);
   };
 
-  const startUserInteraction = () => {
-    isUserInteractingRef.current = true;
-    if (containerRef.current && containerRef.current.scrollLeft !== 0) {
-      containerRef.current.scrollLeft = 0;
-    }
-  };
-
-  const handleTouchMove = () => {
-    isUserInteractingRef.current = true;
+  const handleTouch = () => {
     if (containerRef.current && containerRef.current.scrollLeft !== 0) {
       containerRef.current.scrollLeft = 0;
     }
@@ -780,10 +787,8 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelec
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        onTouchStart={startUserInteraction}
-        onTouchMove={handleTouchMove}
-        onMouseDown={startUserInteraction}
-        onWheel={startUserInteraction}
+        onTouchStart={handleTouch}
+        onTouchMove={handleTouch}
         tabIndex={0}
         aria-label={ariaLabel}
         className="w-full h-[220px] overflow-y-auto overflow-x-hidden snap-y snap-mandatory select-none py-[88px] touch-pan-y focus:outline-none overscroll-x-contain"
@@ -802,12 +807,18 @@ const WheelColumn: React.FC<WheelColumnProps> = ({ items, selectedIndex, onSelec
             <div
               key={item}
               onClick={() => {
-                isUserInteractingRef.current = false;
                 onSelect(idx);
-                containerRef.current?.scrollTo({
-                  top: idx * ITEM_HEIGHT,
-                  behavior: 'smooth',
-                });
+                if (containerRef.current) {
+                  isProgrammaticScrollRef.current = true;
+                  containerRef.current.scrollTo({
+                    top: idx * ITEM_HEIGHT,
+                    behavior: 'smooth',
+                  });
+                  if (programmaticTimerRef.current) clearTimeout(programmaticTimerRef.current);
+                  programmaticTimerRef.current = setTimeout(() => {
+                    isProgrammaticScrollRef.current = false;
+                  }, 350);
+                }
               }}
               style={{ height: `${ITEM_HEIGHT}px` }}
               className={`w-full max-w-full snap-center flex items-center justify-center font-mono cursor-pointer transition-transform duration-150 relative z-20 select-none ${
